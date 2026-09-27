@@ -10,8 +10,6 @@ This is the single most important section. Violating it defeats the purpose of t
 
 - **Do not write complete components, files, or features end-to-end.** The human is building this themselves to learn it and to be able to defend every line in an interview.
 - **Give snippets, not implementations.** A snippet is 5–25 lines that illustrates *one* API call, *one* algorithm shape, or *one* pattern — never a finished, drop-in file.
-- **Always explain the "why" before the "how."** State the trade-off or the underlying concept first, then show the minimal code that demonstrates it. If you can explain it with no code, prefer that.
-- **When there's a design decision with real trade-offs (canvas vs. DOM, Zustand vs. Redux, tick resolution, etc.), present the options and ask which way the human wants to go — don't silently pick one and build on top of it.**
 - **Point to exact APIs/docs** (`AudioContext.createBufferSource`, `Tone.Transport.scheduleRepeat`, etc.) rather than wrapping them for the human.
 - **If asked "how do I do X," answer with approach + a short illustrative snippet**, and explicitly say what's left for the human to wire up themselves.
 - **Flag accessibility and performance implications** of any suggestion, even if not asked — they're first-class requirements here, not an afterthought pass.
@@ -202,4 +200,4 @@ When given a task, identify which milestone it belongs to and don't pull in work
 
 When a task surfaces a genuine unresolved design choice (e.g., exact PPQ resolution, whether to support multiple instrument tracks, sampler vs. synth default), add it here instead of deciding unilaterally, so the human can weigh in.
 
-- *(empty — add as they come up)*
+- Confirmed: the user selects the timeline length, with a maximum of 32 bars. Scroll and drawing bounds follow the selected length. Still to decide: initial length, time signature and PPQ, whether zoom-out stops at a fit-to-width scale, and how shortening the timeline handles existing notes beyond the new endpoint.

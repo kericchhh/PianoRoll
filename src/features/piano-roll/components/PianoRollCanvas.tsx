@@ -1,7 +1,8 @@
 import { useRef, useEffect } from "react";
 import { drawTimeGrid } from "@/features/piano-roll/utils/drawTimeGrid";
 import { drawPitchRows } from "@/features/piano-roll/utils/drawPitchRows";
-import { useWheel } from "@use-gesture/react";
+import { drawNote } from "@/features/piano-roll/utils/drawNote";
+import { useDrag, useWheel } from "@use-gesture/react";
 import { scrollAfterZoom } from "../utils/scrollAfterZoom";
 
 export function PianoRollCanvas() {
@@ -10,6 +11,15 @@ export function PianoRollCanvas() {
     const frameRef = useRef<number | null>(null);
     const redrawRef = useRef<(() => void) | null>(null);
     const scrollRef = useRef(0);
+
+    function requestRedraw(): void {
+        if (frameRef.current !== null) return;
+
+        frameRef.current = requestAnimationFrame(() => {
+            frameRef.current = null
+            redrawRef.current?.()
+        })
+    }
 
     useWheel(
         ({ event, delta: [, deltaY], last }) => {
@@ -25,15 +35,26 @@ export function PianoRollCanvas() {
             scrollRef.current = scrollAfterZoom(cursorX, scrollRef.current, scaleRef.current, nextScale)
             scaleRef.current = nextScale
             
-            if (frameRef.current === null) {
-                frameRef.current = requestAnimationFrame(() => {
-                    frameRef.current = null;
-                    redrawRef.current?.()
-                })
-            }
+           requestRedraw() 
         },
         {
             target: canvasRef,
+            eventOptions: { passive: false }
+        }
+    );
+
+    useDrag(
+        ({ event, delta: [deltaX] }) => {
+            if (!event.shiftKey) return;
+            event.preventDefault()
+
+            scrollRef.current -= deltaX;
+            
+            requestRedraw()
+        },
+        {
+            target: canvasRef,
+            pointer: { buttons: 1, keys: false },
             eventOptions: { passive: false }
         }
     );
@@ -59,6 +80,16 @@ export function PianoRollCanvas() {
             context.clearRect(0, 0, width, height)
             drawTimeGrid(context, width, height, scaleRef.current, scrollRef.current)
             drawPitchRows(context, width, height, 20)
+            drawNote(
+                context,
+                { pitch: 71, startTick: 480, durationTicks: 240 },
+                {
+                    pixelsPerTick: scaleRef.current,
+                    scrollOffsetX: scrollRef.current,
+                    highestVisiblePitch: 72,
+                    rowHeight: 20
+                }
+            )
         } 
 
         redrawRef.current = redraw
@@ -79,7 +110,7 @@ export function PianoRollCanvas() {
         ref={canvasRef}
         role="img"
         aria-label="Time grid preview"
-        className="block border border-slate-600"
+        className="block border border-slate-600 select-none"
         />
     );
 }
