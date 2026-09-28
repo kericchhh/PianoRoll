@@ -1,9 +1,11 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { drawTimeGrid } from "@/features/piano-roll/utils/drawTimeGrid";
 import { drawPitchRows } from "@/features/piano-roll/utils/drawPitchRows";
 import { drawNote } from "@/features/piano-roll/utils/drawNote";
 import { useDrag, useWheel } from "@use-gesture/react";
-import { scrollAfterZoom } from "../utils/scrollAfterZoom";
+import { scrollAfterZoom } from "@/features/piano-roll/utils/scrollAfterZoom";
+import { clampScroll } from "@/features/piano-roll/utils/clampScroll";
+import { clampScale } from "@/features/piano-roll/utils/clampScale";
 
 export function PianoRollCanvas() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -11,6 +13,11 @@ export function PianoRollCanvas() {
     const frameRef = useRef<number | null>(null);
     const redrawRef = useRef<(() => void) | null>(null);
     const scrollRef = useRef(0);
+    const [barCount, setBarCount] = useState(8);
+    const ppq = 480;
+    const beatsPerBar = 4;
+    const endTick = barCount * beatsPerBar * ppq;
+    const width = 600;
 
     function requestRedraw(): void {
         if (frameRef.current !== null) return;
@@ -30,12 +37,13 @@ export function PianoRollCanvas() {
 
             const cursorX = event.clientX - canvas.getBoundingClientRect().left - canvas.clientLeft
             const factor = Math.exp(-deltaY * 0.002)
-            const nextScale = Math.min(2, Math.max(0.0625, scaleRef.current * factor))
+            const nextScale = clampScale(scaleRef.current * factor, endTick, width)
 
-            scrollRef.current = scrollAfterZoom(cursorX, scrollRef.current, scaleRef.current, nextScale)
+            const proposedScroll = scrollAfterZoom(cursorX, scrollRef.current, scaleRef.current, nextScale)
+            scrollRef.current = clampScroll(proposedScroll, endTick, nextScale, width)
             scaleRef.current = nextScale
-            
-           requestRedraw() 
+
+            requestRedraw()
         },
         {
             target: canvasRef,
@@ -48,8 +56,13 @@ export function PianoRollCanvas() {
             if (!event.shiftKey) return;
             event.preventDefault()
 
-            scrollRef.current -= deltaX;
-            
+            scrollRef.current = clampScroll(
+                scrollRef.current - deltaX,
+                endTick,
+                scaleRef.current,
+                width
+            );
+
             requestRedraw()
         },
         {
@@ -62,10 +75,9 @@ export function PianoRollCanvas() {
     useEffect(() => {
         const canvas = canvasRef.current
         if (!canvas) return
-        
-        const width = 600
+
         const height = 240
-        const ratio = window.devicePixelRatio || 1 
+        const ratio = window.devicePixelRatio || 1
 
         canvas.width = Math.round(width * ratio)
         canvas.height = Math.round(height * ratio)
@@ -78,8 +90,10 @@ export function PianoRollCanvas() {
         context.setTransform(ratio, 0, 0, ratio, 0, 0)
         const redraw = () => {
             context.clearRect(0, 0, width, height)
-            drawTimeGrid(context, width, height, scaleRef.current, scrollRef.current)
-            drawPitchRows(context, width, height, 20)
+            const timelineRight = endTick * scaleRef.current - scrollRef.current
+            const gridWidth = Math.max(0, Math.min(width, timelineRight))
+            drawTimeGrid(context, width, height, scaleRef.current, scrollRef.current, endTick)
+            drawPitchRows(context, gridWidth, height, 20)
             drawNote(
                 context,
                 { pitch: 71, startTick: 480, durationTicks: 240 },
@@ -90,8 +104,9 @@ export function PianoRollCanvas() {
                     rowHeight: 20
                 }
             )
-        } 
-
+        }
+        scaleRef.current = clampScale(scaleRef.current, endTick, width)
+        scrollRef.current = clampScroll( scrollRef.current, endTick, scaleRef.current, width) 
         redrawRef.current = redraw
         redraw()
 
@@ -103,14 +118,30 @@ export function PianoRollCanvas() {
 
             redrawRef.current = null
         }
-    }, []);
+    }, [endTick]);
 
     return (
-        <canvas
-        ref={canvasRef}
-        role="img"
-        aria-label="Time grid preview"
-        className="block border border-slate-600 select-none"
-        />
+        <>
+            <label>
+                Timeline length  
+                <select
+                    value={barCount} 
+                    onChange={event => setBarCount(Number(event.target.value))}
+                    className="ml-2 border focus-visible:outline-2"
+                >
+                    {[4, 8, 16, 32].map(bars => (
+                        <option key={bars} value={bars}>
+                            {bars} bars
+                        </option>
+                    ))}
+                </select>
+            </label>
+            <canvas
+                ref={canvasRef}
+                role="img"
+                aria-label="Time grid preview"
+                className="block border border-slate-600 select-none"
+            />
+        </>
     );
 }

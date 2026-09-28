@@ -200,4 +200,4 @@ When given a task, identify which milestone it belongs to and don't pull in work
 
 When a task surfaces a genuine unresolved design choice (e.g., exact PPQ resolution, whether to support multiple instrument tracks, sampler vs. synth default), add it here instead of deciding unilaterally, so the human can weigh in.
 
-- Confirmed: the user selects the timeline length, with a maximum of 32 bars. Scroll and drawing bounds follow the selected length. Still to decide: initial length, time signature and PPQ, whether zoom-out stops at a fit-to-width scale, and how shortening the timeline handles existing notes beyond the new endpoint.
+- Confirmed: the user selects the timeline length from 4, 8, 16, or 32 bars. Scroll and drawing bounds follow the selected length. Minimum zoom fits the selected timeline to the viewport; displayed grid subdivisions adapt to zoom while pitch-row height stays fixed. Still to decide: initial length, time signature and PPQ, and how shortening the timeline handles existing notes beyond the new endpoint.
