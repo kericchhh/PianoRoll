@@ -7,6 +7,11 @@ export interface Note {
     selected: boolean
 };
 
+export interface NoteStoreState {
+    notes: Record<string, Note>;
+    addNote: (note: Note) => void
+};
+
 export interface PianoRollView {
     pixelsPerTick: number;
     scrollOffsetX: number;

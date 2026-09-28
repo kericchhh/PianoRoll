@@ -6,6 +6,12 @@ import { useDrag, useWheel } from "@use-gesture/react";
 import { scrollAfterZoom } from "@/features/piano-roll/utils/scrollAfterZoom";
 import { clampScroll } from "@/features/piano-roll/utils/clampScroll";
 import { clampScale } from "@/features/piano-roll/utils/clampScale";
+import type { MouseEvent } from "react";
+import { pixelToTick } from "../utils/pixelToTick";
+import { snapTick } from "../utils/snapTick";
+import { pixelToPitch } from "../utils/pixelToPitch";
+import { useNoteStore } from "@/features/piano-roll/store/useNoteStore";
+import type { Note } from "@/features/piano-roll/types";
 
 export function PianoRollCanvas() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -18,6 +24,8 @@ export function PianoRollCanvas() {
     const beatsPerBar = 4;
     const endTick = barCount * beatsPerBar * ppq;
     const width = 600;
+    const height = 240;
+    const notes = useNoteStore((state) => state.notes);
 
     function requestRedraw(): void {
         if (frameRef.current !== null) return;
@@ -72,11 +80,49 @@ export function PianoRollCanvas() {
         }
     );
 
+    function handleCanvasClick(event: MouseEvent<HTMLCanvasElement>): void {
+        if (event.shiftKey || event.ctrlKey) return
+
+        const canvas = event.currentTarget
+        const bounds = canvas.getBoundingClientRect()
+        const x = event.clientX - bounds.left - canvas.clientLeft
+        const y = event.clientY - bounds.top - canvas.clientTop
+        
+        if (
+            x < 0 || x >= canvas.clientWidth ||
+            y < 0 || y >= canvas.clientHeight
+        ) return
+
+        const logicalX = x * width / canvas.clientWidth
+        const logicalY = y * height / canvas.clientHeight
+
+        const rawTick = pixelToTick(
+            logicalX, scaleRef.current, scrollRef.current
+        )
+        const startTick = snapTick(rawTick, 120)
+        const pitch = pixelToPitch(logicalY, 72, 20)
+        const durationTicks = 120;
+
+        if (startTick < 0 || startTick + durationTicks > endTick) return
+        if (pitch < 0 || pitch > 127) return
+
+        // console.log({ startTick, pitch, durationTicks })
+        const note: Note = {
+            id: crypto.randomUUID(),
+            pitch,
+            startTick,
+            durationTicks,
+            velocity: 100,
+            selected: false
+        }
+        useNoteStore.getState().addNote(note)
+        // console.log(useNoteStore.getState())
+    }
+
     useEffect(() => {
         const canvas = canvasRef.current
         if (!canvas) return
 
-        const height = 240
         const ratio = window.devicePixelRatio || 1
 
         canvas.width = Math.round(width * ratio)
@@ -94,19 +140,23 @@ export function PianoRollCanvas() {
             const gridWidth = Math.max(0, Math.min(width, timelineRight))
             drawTimeGrid(context, width, height, scaleRef.current, scrollRef.current, endTick)
             drawPitchRows(context, gridWidth, height, 20)
-            drawNote(
-                context,
-                { pitch: 71, startTick: 480, durationTicks: 240 },
-                {
-                    pixelsPerTick: scaleRef.current,
-                    scrollOffsetX: scrollRef.current,
-                    highestVisiblePitch: 72,
-                    rowHeight: 20
-                }
-            )
+            const leftTick = scrollRef.current / scaleRef.current
+            const rightTick = (scrollRef.current + width) / scaleRef.current
+            for (const note of Object.values(notes)) {
+                if (note.startTick + note.durationTicks <= leftTick || 
+                    note.startTick >= rightTick
+                   ) continue;
+               drawNote(context, note, {
+                   pixelsPerTick: scaleRef.current,
+                   scrollOffsetX: scrollRef.current,
+                   highestVisiblePitch: 72,
+                   rowHeight: 20
+               })
+            }
+            
         }
         scaleRef.current = clampScale(scaleRef.current, endTick, width)
-        scrollRef.current = clampScroll( scrollRef.current, endTick, scaleRef.current, width) 
+        scrollRef.current = clampScroll( scrollRef.current, endTick, scaleRef.current, width)
         redrawRef.current = redraw
         redraw()
 
@@ -118,7 +168,7 @@ export function PianoRollCanvas() {
 
             redrawRef.current = null
         }
-    }, [endTick]);
+    }, [endTick, notes]);
 
     return (
         <>
@@ -141,6 +191,7 @@ export function PianoRollCanvas() {
                 role="img"
                 aria-label="Time grid preview"
                 className="block border border-slate-600 select-none"
+                onClick={handleCanvasClick}
             />
         </>
     );
