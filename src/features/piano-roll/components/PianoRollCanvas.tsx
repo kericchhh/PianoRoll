@@ -12,6 +12,7 @@ import { snapTick } from "../utils/snapTick";
 import { pixelToPitch } from "../utils/pixelToPitch";
 import { useNoteStore } from "@/features/piano-roll/store/useNoteStore";
 import type { Note } from "@/features/piano-roll/types";
+import { findNoteAt } from "../utils/findNoteAt";
 
 export function PianoRollCanvas() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -99,8 +100,15 @@ export function PianoRollCanvas() {
         const rawTick = pixelToTick(
             logicalX, scaleRef.current, scrollRef.current
         )
-        const startTick = snapTick(rawTick, 120)
         const pitch = pixelToPitch(logicalY, 72, 20)
+        const match = findNoteAt(notes, rawTick, pitch)
+
+        if (match) {
+            useNoteStore.getState().selectNote(match.id)
+            return
+        }
+        const startTick = snapTick(rawTick, 120)
+
         const durationTicks = 120;
 
         if (startTick < 0 || startTick + durationTicks > endTick) return
@@ -193,6 +201,20 @@ export function PianoRollCanvas() {
                 className="block border border-slate-600 select-none"
                 onClick={handleCanvasClick}
             />
+            <ul aria-label="Notes" className="sr-only focus-within:not-sr-only">
+                {Object.values(notes).map((note) => (
+                    <li key={note.id}>
+                        <button
+                            type="button"
+                            className="focus-visible:outline-2 focus-visible:outline-blue-700"
+                            onClick={() => useNoteStore.getState().selectNote(note.id)}
+                        >
+                            {note.selected ? "Selected: " : ""}
+                            Pitch {note.pitch}, tick {note.startTick}, duration {note.durationTicks} ticks
+                        </button>
+                    </li>
+                ))}
+            </ul>
         </>
     );
 }

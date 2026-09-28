@@ -10,4 +10,16 @@ export const useNoteStore = create<NoteStoreState>()((set) => ({
                 [note.id]: note
             }
         })),
+    selectNote: (id: string) =>
+        set((state) => {
+            if (!state.notes[id]) return state
+            const nextNotes: NoteStoreState["notes"] = {}
+            for (const [noteId, note] of Object.entries(state.notes)) {
+                const selected = noteId === id
+                nextNotes[noteId] = 
+                    note.selected === selected ? note : { ...note, selected }
+            }
+
+            return {notes: nextNotes}
+        }),
 }));
