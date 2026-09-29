@@ -10,7 +10,8 @@ export interface Note {
 export interface NoteStoreState {
     notes: Record<string, Note>;
     addNote: (note: Note) => void;
-    selectNote: (id: string) => void
+    selectNote: (id: string) => void;
+    deleteNote: (id: string) => void;
 };
 
 export interface PianoRollView {

@@ -22,4 +22,11 @@ export const useNoteStore = create<NoteStoreState>()((set) => ({
 
             return {notes: nextNotes}
         }),
+    deleteNote: (id: string) =>
+        set((state) => {
+            if (!Object.hasOwn(state.notes, id)) return state
+            const notes = {...state.notes}
+            delete notes[id]
+            return { notes }
+        })
 }));

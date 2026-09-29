@@ -7,12 +7,13 @@ import { scrollAfterZoom } from "@/features/piano-roll/utils/scrollAfterZoom";
 import { clampScroll } from "@/features/piano-roll/utils/clampScroll";
 import { clampScale } from "@/features/piano-roll/utils/clampScale";
 import type { MouseEvent } from "react";
-import { pixelToTick } from "../utils/pixelToTick";
-import { snapTick } from "../utils/snapTick";
-import { pixelToPitch } from "../utils/pixelToPitch";
+import { snapTick } from "@/features/piano-roll/utils/snapTick";
 import { useNoteStore } from "@/features/piano-roll/store/useNoteStore";
-import type { Note } from "@/features/piano-roll/types";
-import { findNoteAt } from "../utils/findNoteAt";
+import type { Note, PianoRollView } from "@/features/piano-roll/types";
+import { findNoteAt } from "@/features/piano-roll/utils/findNoteAt";
+import { eventToMusicPoint } from "@/features/piano-roll/utils/eventToMusicPoint";
+import * as ContextMenu from "@radix-ui/react-context-menu";
+import { NoteContextMenuContent } from "@/features/piano-roll/components/NoteContextMenuContent";
 
 export function PianoRollCanvas() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -21,12 +22,22 @@ export function PianoRollCanvas() {
     const redrawRef = useRef<(() => void) | null>(null);
     const scrollRef = useRef(0);
     const [barCount, setBarCount] = useState(8);
+    const [menuNoteId, setMenuNoteId] = useState<string | null>(null);
     const ppq = 480;
     const beatsPerBar = 4;
     const endTick = barCount * beatsPerBar * ppq;
     const width = 600;
     const height = 240;
     const notes = useNoteStore((state) => state.notes);
+   
+    function getPianoRollView(): PianoRollView {
+        return {
+            pixelsPerTick: scaleRef.current,
+            scrollOffsetX: scrollRef.current,
+            highestVisiblePitch: 72,
+            rowHeight: 20
+        }
+    }
 
     function requestRedraw(): void {
         if (frameRef.current !== null) return;
@@ -84,40 +95,25 @@ export function PianoRollCanvas() {
     function handleCanvasClick(event: MouseEvent<HTMLCanvasElement>): void {
         if (event.shiftKey || event.ctrlKey) return
 
-        const canvas = event.currentTarget
-        const bounds = canvas.getBoundingClientRect()
-        const x = event.clientX - bounds.left - canvas.clientLeft
-        const y = event.clientY - bounds.top - canvas.clientTop
-        
-        if (
-            x < 0 || x >= canvas.clientWidth ||
-            y < 0 || y >= canvas.clientHeight
-        ) return
-
-        const logicalX = x * width / canvas.clientWidth
-        const logicalY = y * height / canvas.clientHeight
-
-        const rawTick = pixelToTick(
-            logicalX, scaleRef.current, scrollRef.current
-        )
-        const pitch = pixelToPitch(logicalY, 72, 20)
-        const match = findNoteAt(notes, rawTick, pitch)
+        const point = eventToMusicPoint(event, width, height, getPianoRollView()) 
+        if (!point) return
+        const match = findNoteAt(notes, point.tick, point.pitch)
 
         if (match) {
             useNoteStore.getState().selectNote(match.id)
             return
         }
-        const startTick = snapTick(rawTick, 120)
+        const startTick = snapTick(point.tick, 120)
 
         const durationTicks = 120;
 
         if (startTick < 0 || startTick + durationTicks > endTick) return
-        if (pitch < 0 || pitch > 127) return
+        if (point.pitch < 0 || point.pitch > 127) return
 
         // console.log({ startTick, pitch, durationTicks })
         const note: Note = {
             id: crypto.randomUUID(),
-            pitch,
+            pitch: point.pitch,
             startTick,
             durationTicks,
             velocity: 100,
@@ -125,6 +121,18 @@ export function PianoRollCanvas() {
         }
         useNoteStore.getState().addNote(note)
         // console.log(useNoteStore.getState())
+    };
+
+    function handleCanvasContextMenu(event: MouseEvent<HTMLCanvasElement>) {
+        if (event.button !== 2) {
+            setMenuNoteId(null)
+            return
+        }
+        const point = eventToMusicPoint(event, width, height, getPianoRollView())
+        const note = point 
+            ? findNoteAt(useNoteStore.getState().notes, point.tick, point.pitch)
+            : undefined
+        setMenuNoteId(note?.id ?? null)
     }
 
     useEffect(() => {
@@ -194,13 +202,23 @@ export function PianoRollCanvas() {
                     ))}
                 </select>
             </label>
-            <canvas
-                ref={canvasRef}
-                role="img"
-                aria-label="Time grid preview"
-                className="block border border-slate-600 select-none"
-                onClick={handleCanvasClick}
-            />
+            <ContextMenu.Root>
+                <ContextMenu.Trigger asChild>
+                    <canvas
+                        ref={canvasRef}
+                        role="img"
+                        aria-label="Time grid preview"
+                        className="block border border-slate-600 select-none"
+                        onClick={handleCanvasClick}
+                        onContextMenuCapture={handleCanvasContextMenu}
+                    />
+                </ContextMenu.Trigger>
+                <NoteContextMenuContent
+                    noteId={menuNoteId}
+                    onSelectNote={useNoteStore.getState().selectNote}
+                    onDeleteNote={useNoteStore.getState().deleteNote}
+                />
+            </ContextMenu.Root>
             <ul aria-label="Notes" className="sr-only focus-within:not-sr-only">
                 {Object.values(notes).map((note) => (
                     <li key={note.id}>
