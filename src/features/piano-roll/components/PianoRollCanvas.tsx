@@ -2,18 +2,15 @@ import { useRef, useEffect, useState } from "react";
 import { drawTimeGrid } from "@/features/piano-roll/utils/drawTimeGrid";
 import { drawPitchRows } from "@/features/piano-roll/utils/drawPitchRows";
 import { drawNote } from "@/features/piano-roll/utils/drawNote";
-import { useDrag, useWheel } from "@use-gesture/react";
-import { scrollAfterZoom } from "@/features/piano-roll/utils/scrollAfterZoom";
 import { clampScroll } from "@/features/piano-roll/utils/clampScroll";
 import { clampScale } from "@/features/piano-roll/utils/clampScale";
-import type { MouseEvent } from "react";
-import { snapTick } from "@/features/piano-roll/utils/snapTick";
 import { useNoteStore } from "@/features/piano-roll/store/useNoteStore";
-import type { Note, PianoRollView } from "@/features/piano-roll/types";
-import { findNoteAt } from "@/features/piano-roll/utils/findNoteAt";
-import { eventToMusicPoint } from "@/features/piano-roll/utils/eventToMusicPoint";
+import type { PianoRollView } from "@/features/piano-roll/types";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { NoteContextMenuContent } from "@/features/piano-roll/components/NoteContextMenuContent";
+import { useNoteInteractions } from "@/features/piano-roll/hooks/useNoteInteractions";
+import { useZoomPan } from "@/features/piano-roll/hooks/useZoomPan";
+import { BEATS_PER_BAR, PPQ } from "@/features/piano-roll/constants";
 
 export function PianoRollCanvas() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -22,14 +19,10 @@ export function PianoRollCanvas() {
     const redrawRef = useRef<(() => void) | null>(null);
     const scrollRef = useRef(0);
     const [barCount, setBarCount] = useState(8);
-    const [menuNoteId, setMenuNoteId] = useState<string | null>(null);
-    const ppq = 480;
-    const beatsPerBar = 4;
-    const endTick = barCount * beatsPerBar * ppq;
+    const endTick = barCount * BEATS_PER_BAR * PPQ;
     const width = 600;
     const height = 240;
     const notes = useNoteStore((state) => state.notes);
-   
     function getPianoRollView(): PianoRollView {
         return {
             pixelsPerTick: scaleRef.current,
@@ -38,6 +31,12 @@ export function PianoRollCanvas() {
             rowHeight: 20
         }
     }
+    const {
+        menuNoteId,
+        handleCanvasClick,
+        handleCanvasContextMenu
+    } = useNoteInteractions({ getView: getPianoRollView, width, height, endTick })
+
 
     function requestRedraw(): void {
         if (frameRef.current !== null) return;
@@ -47,93 +46,8 @@ export function PianoRollCanvas() {
             redrawRef.current?.()
         })
     }
+    useZoomPan({ canvasRef, scaleRef, scrollRef, endTick, width, requestRedraw })
 
-    useWheel(
-        ({ event, delta: [, deltaY], last }) => {
-            if (!event.ctrlKey || last) return
-            event.preventDefault()
-            const canvas = canvasRef.current
-            if (!canvas) return
-
-            const cursorX = event.clientX - canvas.getBoundingClientRect().left - canvas.clientLeft
-            const factor = Math.exp(-deltaY * 0.002)
-            const nextScale = clampScale(scaleRef.current * factor, endTick, width)
-
-            const proposedScroll = scrollAfterZoom(cursorX, scrollRef.current, scaleRef.current, nextScale)
-            scrollRef.current = clampScroll(proposedScroll, endTick, nextScale, width)
-            scaleRef.current = nextScale
-
-            requestRedraw()
-        },
-        {
-            target: canvasRef,
-            eventOptions: { passive: false }
-        }
-    );
-
-    useDrag(
-        ({ event, delta: [deltaX] }) => {
-            if (!event.shiftKey) return;
-            event.preventDefault()
-
-            scrollRef.current = clampScroll(
-                scrollRef.current - deltaX,
-                endTick,
-                scaleRef.current,
-                width
-            );
-
-            requestRedraw()
-        },
-        {
-            target: canvasRef,
-            pointer: { buttons: 1, keys: false },
-            eventOptions: { passive: false }
-        }
-    );
-
-    function handleCanvasClick(event: MouseEvent<HTMLCanvasElement>): void {
-        if (event.shiftKey || event.ctrlKey) return
-
-        const point = eventToMusicPoint(event, width, height, getPianoRollView()) 
-        if (!point) return
-        const match = findNoteAt(notes, point.tick, point.pitch)
-
-        if (match) {
-            useNoteStore.getState().selectNote(match.id)
-            return
-        }
-        const startTick = snapTick(point.tick, 120)
-
-        const durationTicks = 120;
-
-        if (startTick < 0 || startTick + durationTicks > endTick) return
-        if (point.pitch < 0 || point.pitch > 127) return
-
-        // console.log({ startTick, pitch, durationTicks })
-        const note: Note = {
-            id: crypto.randomUUID(),
-            pitch: point.pitch,
-            startTick,
-            durationTicks,
-            velocity: 100,
-            selected: false
-        }
-        useNoteStore.getState().addNote(note)
-        // console.log(useNoteStore.getState())
-    };
-
-    function handleCanvasContextMenu(event: MouseEvent<HTMLCanvasElement>) {
-        if (event.button !== 2) {
-            setMenuNoteId(null)
-            return
-        }
-        const point = eventToMusicPoint(event, width, height, getPianoRollView())
-        const note = point 
-            ? findNoteAt(useNoteStore.getState().notes, point.tick, point.pitch)
-            : undefined
-        setMenuNoteId(note?.id ?? null)
-    }
 
     useEffect(() => {
         const canvas = canvasRef.current
