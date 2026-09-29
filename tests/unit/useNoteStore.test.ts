@@ -43,3 +43,23 @@ test('ignores an unknown note ID without changing state', () => {
 
   expect(useNoteStore.getState()).toBe(before);
 });
+
+test('deletes only the requested note', () => {
+  const store = useNoteStore.getState();
+  store.addNote(makeNote('a'));
+  store.addNote(makeNote('b'));
+
+  store.deleteNote('a');
+
+  expect(useNoteStore.getState().notes.a).toBeUndefined();
+  expect(useNoteStore.getState().notes.b).toEqual(makeNote('b'));
+});
+
+test('ignores deletion of an unknown note ID without changing state', () => {
+  useNoteStore.getState().addNote(makeNote('a'));
+  const before = useNoteStore.getState();
+
+  before.deleteNote('missing');
+
+  expect(useNoteStore.getState()).toBe(before);
+});

@@ -18,6 +18,7 @@ export function PianoRollCanvas() {
     const frameRef = useRef<number | null>(null);
     const redrawRef = useRef<(() => void) | null>(null);
     const scrollRef = useRef(0);
+    const editorRef = useRef<HTMLDivElement>(null);
     const [barCount, setBarCount] = useState(8);
     const endTick = barCount * BEATS_PER_BAR * PPQ;
     const width = 600;
@@ -34,7 +35,10 @@ export function PianoRollCanvas() {
     const {
         menuNoteId,
         handleCanvasClick,
-        handleCanvasContextMenu
+        handleCanvasContextMenu,
+        handleEditorKeyDown,
+        deleteNote,
+        alert
     } = useNoteInteractions({ getView: getPianoRollView, width, height, endTick })
 
 
@@ -73,20 +77,20 @@ export function PianoRollCanvas() {
             const leftTick = scrollRef.current / scaleRef.current
             const rightTick = (scrollRef.current + width) / scaleRef.current
             for (const note of Object.values(notes)) {
-                if (note.startTick + note.durationTicks <= leftTick || 
+                if (note.startTick + note.durationTicks <= leftTick ||
                     note.startTick >= rightTick
-                   ) continue;
-               drawNote(context, note, {
-                   pixelsPerTick: scaleRef.current,
-                   scrollOffsetX: scrollRef.current,
-                   highestVisiblePitch: 72,
-                   rowHeight: 20
-               })
+                ) continue;
+                drawNote(context, note, {
+                    pixelsPerTick: scaleRef.current,
+                    scrollOffsetX: scrollRef.current,
+                    highestVisiblePitch: 72,
+                    rowHeight: 20
+                })
             }
-            
+
         }
         scaleRef.current = clampScale(scaleRef.current, endTick, width)
-        scrollRef.current = clampScroll( scrollRef.current, endTick, scaleRef.current, width)
+        scrollRef.current = clampScroll(scrollRef.current, endTick, scaleRef.current, width)
         redrawRef.current = redraw
         redraw()
 
@@ -103,9 +107,9 @@ export function PianoRollCanvas() {
     return (
         <>
             <label>
-                Timeline length  
+                Timeline length
                 <select
-                    value={barCount} 
+                    value={barCount}
                     onChange={event => setBarCount(Number(event.target.value))}
                     className="ml-2 border focus-visible:outline-2"
                 >
@@ -116,37 +120,50 @@ export function PianoRollCanvas() {
                     ))}
                 </select>
             </label>
-            <ContextMenu.Root>
-                <ContextMenu.Trigger asChild>
-                    <canvas
-                        ref={canvasRef}
-                        role="img"
-                        aria-label="Time grid preview"
-                        className="block border border-slate-600 select-none"
-                        onClick={handleCanvasClick}
-                        onContextMenuCapture={handleCanvasContextMenu}
+            <div
+                ref={editorRef}
+                role="group"
+                aria-label="Piano roll editor"
+                tabIndex={0}
+                onKeyDown={handleEditorKeyDown}
+                className="focus-visible:outline-2 focus-visible:outline-blue-700"
+            >
+                <ContextMenu.Root>
+                    <ContextMenu.Trigger asChild>
+                        <canvas
+                            ref={canvasRef}
+                            role="img"
+                            aria-label="Time grid preview"
+                            className="block border border-slate-600 select-none"
+                            onClick={(event) => {
+                                handleCanvasClick(event)
+                                editorRef.current?.focus({ preventScroll: true})
+                            }}
+                            onContextMenuCapture={handleCanvasContextMenu}
+                        />
+                    </ContextMenu.Trigger>
+                    <NoteContextMenuContent
+                        noteId={menuNoteId}
+                        onSelectNote={useNoteStore.getState().selectNote}
+                        onDeleteNote={deleteNote}
                     />
-                </ContextMenu.Trigger>
-                <NoteContextMenuContent
-                    noteId={menuNoteId}
-                    onSelectNote={useNoteStore.getState().selectNote}
-                    onDeleteNote={useNoteStore.getState().deleteNote}
-                />
-            </ContextMenu.Root>
-            <ul aria-label="Notes" className="sr-only focus-within:not-sr-only">
-                {Object.values(notes).map((note) => (
-                    <li key={note.id}>
-                        <button
-                            type="button"
-                            className="focus-visible:outline-2 focus-visible:outline-blue-700"
-                            onClick={() => useNoteStore.getState().selectNote(note.id)}
-                        >
-                            {note.selected ? "Selected: " : ""}
-                            Pitch {note.pitch}, tick {note.startTick}, duration {note.durationTicks} ticks
-                        </button>
-                    </li>
-                ))}
-            </ul>
+                </ContextMenu.Root>
+                <ul aria-label="Notes" className="sr-only focus-within:not-sr-only">
+                    {Object.values(notes).map((note) => (
+                        <li key={note.id}>
+                            <button
+                                type="button"
+                                className="focus-visible:outline-2 focus-visible:outline-blue-700"
+                                onClick={() => useNoteStore.getState().selectNote(note.id)}
+                            >
+                                {note.selected ? "Selected: " : ""}
+                                Pitch {note.pitch}, tick {note.startTick}, duration {note.durationTicks} ticks
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+                <p role="status" aria-atomic="true" className="sr-only">{alert}</p>
+            </div>
         </>
     );
 }

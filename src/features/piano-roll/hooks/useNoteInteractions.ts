@@ -5,6 +5,7 @@ import { findNoteAt } from "@/features/piano-roll/utils/findNoteAt";
 import { useNoteStore } from "@/features/piano-roll/store/useNoteStore";
 import { snapTick } from "@/features/piano-roll/utils/snapTick";
 import { DEFAULT_NOTE_DURATION_TICKS, DEFAULT_NOTE_VELOCITY } from "@/features/piano-roll/constants";
+import type { KeyboardEvent } from "react";
 
 type Options = {
     width: number,
@@ -15,6 +16,14 @@ type Options = {
 
 export function useNoteInteractions({ width, height, getView, endTick }: Options) {
     const [menuNoteId, SetMenuNoteId] = useState<string | null>(null);
+    const [alert, setAlert] = useState("");
+
+    function deleteNote(id: string) {
+        const note = useNoteStore.getState().notes[id]
+        if (!note) return
+        useNoteStore.getState().deleteNote(id)
+        setAlert(`Deleted pitch ${note.pitch} at tick ${note.startTick}`)
+    }
 
     function handleCanvasContextMenu(event: MouseEvent<HTMLCanvasElement>) {
         if (event.button !== 2) {
@@ -41,7 +50,6 @@ export function useNoteInteractions({ width, height, getView, endTick }: Options
         const durationTicks = DEFAULT_NOTE_DURATION_TICKS;
         if (startTick < 0 || startTick + durationTicks > endTick) return
         if (point.pitch < 0 || point.pitch > 127) return
-        // console.log({ startTick, pitch, durationTicks })
         const note: Note = {
             id: crypto.randomUUID(),
             pitch: point.pitch,
@@ -51,8 +59,20 @@ export function useNoteInteractions({ width, height, getView, endTick }: Options
             selected: false
         }
         useNoteStore.getState().addNote(note)
-        // console.log(useNoteStore.getState())
     }
 
-    return { menuNoteId, handleCanvasContextMenu, handleCanvasClick }
+    function handleEditorKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+        if (event.key !== "Delete" || event.repeat ) return
+        if (event.target instanceof HTMLElement && 
+            event.target.closest("input, textarea, select, [contenteditable]")
+           ) return
+        const note = Object.values(useNoteStore.getState().notes).find((note) => note.selected)
+        if (!note) return
+
+        event.preventDefault()
+        event.currentTarget.focus({ preventScroll: true})
+        deleteNote(note.id)
+    }
+
+    return { menuNoteId, handleCanvasContextMenu, handleCanvasClick, handleEditorKeyDown, deleteNote, alert }
 }
