@@ -63,3 +63,29 @@ test('ignores deletion of an unknown note ID without changing state', () => {
 
   expect(useNoteStore.getState()).toBe(before);
 });
+
+test('moves only the requested note while preserving its other fields', () => {
+  const store = useNoteStore.getState();
+  store.addNote(makeNote('a'));
+  store.addNote(makeNote('b'));
+  const before = useNoteStore.getState().notes;
+
+  store.moveNote('a', 480, 72);
+
+  expect(useNoteStore.getState().notes.a).toEqual({
+    ...makeNote('a'), startTick: 480, pitch: 72,
+  });
+  expect(useNoteStore.getState().notes.b).toBe(before.b);
+  expect(before.a).toEqual(makeNote('a'));
+});
+
+test('ignores unknown or unchanged note moves', () => {
+  const store = useNoteStore.getState();
+  store.addNote(makeNote('a'));
+  const before = useNoteStore.getState();
+
+  store.moveNote('missing', 480, 72);
+  expect(useNoteStore.getState()).toBe(before);
+  store.moveNote('a', 120, 60);
+  expect(useNoteStore.getState()).toBe(before);
+});

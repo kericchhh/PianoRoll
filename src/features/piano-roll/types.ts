@@ -11,6 +11,7 @@ export interface NoteStoreState {
     notes: Record<string, Note>;
     addNote: (note: Note) => void;
     selectNote: (id: string) => void;
+    moveNote: (id: string, startTick: number, pitch: number) => void;
     deleteNote: (id: string) => void;
 };
 

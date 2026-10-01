@@ -5,12 +5,12 @@ import { drawNote } from "@/features/piano-roll/utils/drawNote";
 import { clampScroll } from "@/features/piano-roll/utils/clampScroll";
 import { clampScale } from "@/features/piano-roll/utils/clampScale";
 import { useNoteStore } from "@/features/piano-roll/store/useNoteStore";
-import type { PianoRollView } from "@/features/piano-roll/types";
+import type { PianoRollView, Note } from "@/features/piano-roll/types";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { NoteContextMenuContent } from "@/features/piano-roll/components/NoteContextMenuContent";
 import { useNoteInteractions } from "@/features/piano-roll/hooks/useNoteInteractions";
 import { useZoomPan } from "@/features/piano-roll/hooks/useZoomPan";
-import { BEATS_PER_BAR, PPQ } from "@/features/piano-roll/constants";
+import { BAR_COUNTS, BEATS_PER_BAR, PPQ } from "@/features/piano-roll/constants";
 
 export function PianoRollCanvas() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -19,6 +19,8 @@ export function PianoRollCanvas() {
     const redrawRef = useRef<(() => void) | null>(null);
     const scrollRef = useRef(0);
     const editorRef = useRef<HTMLDivElement>(null);
+    const dragCandidateRef = useRef<Note | null>(null);
+    const previewRef = useRef<Note | null>(null);
     const [barCount, setBarCount] = useState(8);
     const endTick = barCount * BEATS_PER_BAR * PPQ;
     const width = 600;
@@ -38,8 +40,12 @@ export function PianoRollCanvas() {
         handleCanvasContextMenu,
         handleEditorKeyDown,
         deleteNote,
-        alert
-    } = useNoteInteractions({ getView: getPianoRollView, width, height, endTick })
+        alert,
+        handleCanvasPointerDown
+    } = useNoteInteractions({
+        canvasRef, getView: getPianoRollView, width, height, endTick,
+        dragCandidateRef, previewRef, requestRedraw
+    })
 
 
     function requestRedraw(): void {
@@ -76,16 +82,16 @@ export function PianoRollCanvas() {
             drawPitchRows(context, gridWidth, height, 20)
             const leftTick = scrollRef.current / scaleRef.current
             const rightTick = (scrollRef.current + width) / scaleRef.current
+            const view = getPianoRollView()
+            const isVisible = (note: Note) =>
+                note.startTick + note.durationTicks > leftTick && note.startTick < rightTick
             for (const note of Object.values(notes)) {
-                if (note.startTick + note.durationTicks <= leftTick ||
-                    note.startTick >= rightTick
-                ) continue;
-                drawNote(context, note, {
-                    pixelsPerTick: scaleRef.current,
-                    scrollOffsetX: scrollRef.current,
-                    highestVisiblePitch: 72,
-                    rowHeight: 20
-                })
+                const preview = previewRef.current?.id === note.id ? previewRef.current : null
+                if (preview && isVisible(note)) {
+                    drawNote(context, { ...note, selected: false }, view, '#94a3b8')
+                }
+                const displayedNote = preview ?? note
+                if (isVisible(displayedNote)) drawNote(context, displayedNote, view)
             }
 
         }
@@ -113,7 +119,7 @@ export function PianoRollCanvas() {
                     onChange={event => setBarCount(Number(event.target.value))}
                     className="ml-2 border focus-visible:outline-2"
                 >
-                    {[4, 8, 16, 32].map(bars => (
+                    {BAR_COUNTS.map(bars => (
                         <option key={bars} value={bars}>
                             {bars} bars
                         </option>
@@ -140,6 +146,7 @@ export function PianoRollCanvas() {
                                 editorRef.current?.focus({ preventScroll: true})
                             }}
                             onContextMenuCapture={handleCanvasContextMenu}
+                            onPointerDown={handleCanvasPointerDown}
                         />
                     </ContextMenu.Trigger>
                     <NoteContextMenuContent

@@ -22,6 +22,17 @@ export const useNoteStore = create<NoteStoreState>()((set) => ({
 
             return {notes: nextNotes}
         }),
+    moveNote: (id, startTick, pitch) =>
+        set((state) => {
+            const note = state.notes[id]
+            if (!note || (note.startTick === startTick && note.pitch === pitch)) return state
+            return {
+                notes: {
+                    ...state.notes,
+                    [id]: { ...note, startTick, pitch }
+                }
+            }
+        }),
     deleteNote: (id: string) =>
         set((state) => {
             if (!Object.hasOwn(state.notes, id)) return state
