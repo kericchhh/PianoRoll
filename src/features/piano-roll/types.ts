@@ -11,8 +11,11 @@ export interface NoteStoreState {
     notes: Record<string, Note>;
     addNote: (note: Note) => void;
     selectNote: (id: string) => void;
+    toggleNoteSelection: (id: string) => void;
     moveNote: (id: string, startTick: number, pitch: number) => void;
+    moveNotes: (positions: readonly Pick<Note, 'id' | 'startTick' | 'pitch'>[]) => void;
     deleteNote: (id: string) => void;
+    deleteNotes: (ids: readonly string[]) => void;
 };
 
 export interface PianoRollView {

@@ -89,3 +89,66 @@ test('ignores unknown or unchanged note moves', () => {
   store.moveNote('a', 120, 60);
   expect(useNoteStore.getState()).toBe(before);
 });
+
+test('toggles one selection without deselecting the other notes', () => {
+  const store = useNoteStore.getState();
+  store.addNote(makeNote('a'));
+  store.addNote(makeNote('b'));
+  store.selectNote('a');
+  const before = useNoteStore.getState().notes;
+
+  store.toggleNoteSelection('b');
+  expect(useNoteStore.getState().notes.a).toBe(before.a);
+  expect(useNoteStore.getState().notes.b.selected).toBe(true);
+  expect(before.b.selected).toBe(false);
+
+  store.toggleNoteSelection('a');
+  expect(useNoteStore.getState().notes.a.selected).toBe(false);
+  expect(useNoteStore.getState().notes.b.selected).toBe(true);
+});
+
+test('unknown selection toggles are a no-op', () => {
+  const before = useNoteStore.getState();
+  before.toggleNoteSelection('missing');
+  expect(useNoteStore.getState()).toBe(before);
+});
+
+test('batch movement publishes one update and preserves unrelated notes', () => {
+  const store = useNoteStore.getState();
+  store.addNote(makeNote('a'));
+  store.addNote(makeNote('b'));
+  store.addNote(makeNote('c'));
+  const before = useNoteStore.getState().notes;
+  const updates: typeof before[] = [];
+  const unsubscribe = useNoteStore.subscribe(state => updates.push(state.notes));
+
+  store.moveNotes([
+    { id: 'a', startTick: 240, pitch: 61 },
+    { id: 'b', startTick: 480, pitch: 65 },
+  ]);
+  unsubscribe();
+
+  expect(updates).toHaveLength(1);
+  expect(updates[0].a).toMatchObject({ startTick: 240, pitch: 61 });
+  expect(updates[0].b).toMatchObject({ startTick: 480, pitch: 65 });
+  expect(updates[0].c).toBe(before.c);
+  expect(before.a).toEqual(makeNote('a'));
+});
+
+test('batch deletion removes only its targets and ignores duplicate or unknown IDs', () => {
+  const store = useNoteStore.getState();
+  store.addNote(makeNote('a'));
+  store.addNote(makeNote('b'));
+  store.addNote(makeNote('c'));
+  const before = useNoteStore.getState().notes;
+
+  store.deleteNotes(['a', 'b', 'a', 'missing']);
+
+  expect(useNoteStore.getState().notes).toEqual({ c: before.c });
+  expect(before.a).toBeDefined();
+  expect(before.b).toBeDefined();
+  const after = useNoteStore.getState();
+  store.deleteNotes(['missing']);
+  store.moveNotes([{ id: 'missing', startTick: 0, pitch: 0 }]);
+  expect(useNoteStore.getState()).toBe(after);
+});

@@ -20,7 +20,7 @@ export function PianoRollCanvas() {
     const scrollRef = useRef(0);
     const editorRef = useRef<HTMLDivElement>(null);
     const dragCandidateRef = useRef<Note | null>(null);
-    const previewRef = useRef<Note | null>(null);
+    const previewRef = useRef<Record<string, Note> | null>(null);
     const [barCount, setBarCount] = useState(8);
     const endTick = barCount * BEATS_PER_BAR * PPQ;
     const width = 600;
@@ -40,6 +40,7 @@ export function PianoRollCanvas() {
         handleCanvasContextMenu,
         handleEditorKeyDown,
         deleteNote,
+        selectNote,
         alert,
         handleCanvasPointerDown
     } = useNoteInteractions({
@@ -85,12 +86,17 @@ export function PianoRollCanvas() {
             const view = getPianoRollView()
             const isVisible = (note: Note) =>
                 note.startTick + note.durationTicks > leftTick && note.startTick < rightTick
-            for (const note of Object.values(notes)) {
-                const preview = previewRef.current?.id === note.id ? previewRef.current : null
-                if (preview && isVisible(note)) {
-                    drawNote(context, { ...note, selected: false }, view, '#94a3b8')
+            const previews = previewRef.current
+            if (previews) {
+                for (const id of Object.keys(previews)) {
+                    const origin = notes[id]
+                    if (origin && isVisible(origin)) {
+                        drawNote(context, { ...origin, selected: false }, view, '#94a3b8')
+                    }
                 }
-                const displayedNote = preview ?? note
+            }
+            for (const note of Object.values(notes)) {
+                const displayedNote = previews?.[note.id] ?? note
                 if (isVisible(displayedNote)) drawNote(context, displayedNote, view)
             }
 
@@ -151,7 +157,7 @@ export function PianoRollCanvas() {
                     </ContextMenu.Trigger>
                     <NoteContextMenuContent
                         noteId={menuNoteId}
-                        onSelectNote={useNoteStore.getState().selectNote}
+                        onSelectNote={id => selectNote(id)}
                         onDeleteNote={deleteNote}
                     />
                 </ContextMenu.Root>
@@ -160,8 +166,9 @@ export function PianoRollCanvas() {
                         <li key={note.id}>
                             <button
                                 type="button"
+                                aria-pressed={note.selected}
                                 className="focus-visible:outline-2 focus-visible:outline-blue-700"
-                                onClick={() => useNoteStore.getState().selectNote(note.id)}
+                                onClick={() => selectNote(note.id, true)}
                             >
                                 {note.selected ? "Selected: " : ""}
                                 Pitch {note.pitch}, tick {note.startTick}, duration {note.durationTicks} ticks
