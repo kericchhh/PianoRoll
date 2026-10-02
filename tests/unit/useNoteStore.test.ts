@@ -113,6 +113,43 @@ test('unknown selection toggles are a no-op', () => {
   expect(useNoteStore.getState()).toBe(before);
 });
 
+test('batch selection replaces the selected set in one update without mutating notes', () => {
+  const store = useNoteStore.getState();
+  for (const id of ['a', 'b', 'c', 'd']) store.addNote(makeNote(id));
+  store.selectNote('c');
+  const before = useNoteStore.getState().notes;
+  const updates: typeof before[] = [];
+  const unsubscribe = useNoteStore.subscribe(state => updates.push(state.notes));
+
+  store.selectNotes(['a', 'b', 'a', 'missing']);
+  unsubscribe();
+
+  expect(updates).toHaveLength(1);
+  expect(updates[0].a.selected).toBe(true);
+  expect(updates[0].b.selected).toBe(true);
+  expect(updates[0].c.selected).toBe(false);
+  expect(updates[0].d).toBe(before.d);
+  expect(before.a.selected).toBe(false);
+  expect(before.c.selected).toBe(true);
+});
+
+test('an empty batch clears selection while an unchanged batch preserves state identity', () => {
+  const store = useNoteStore.getState();
+  store.addNote(makeNote('a'));
+  store.addNote(makeNote('b'));
+  store.selectNotes(['a', 'b']);
+  const selected = useNoteStore.getState();
+
+  store.selectNotes(['b', 'a', 'a', 'missing']);
+  expect(useNoteStore.getState()).toBe(selected);
+
+  store.selectNotes([]);
+  const cleared = useNoteStore.getState();
+  expect(Object.values(cleared.notes).every(note => !note.selected)).toBe(true);
+  store.selectNotes([]);
+  expect(useNoteStore.getState()).toBe(cleared);
+});
+
 test('batch movement publishes one update and preserves unrelated notes', () => {
   const store = useNoteStore.getState();
   store.addNote(makeNote('a'));

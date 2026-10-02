@@ -1,11 +1,12 @@
 import { useRef, useState, type MouseEvent } from "react";
 import { useDrag } from "@use-gesture/react";
-import type { PianoRollView, Note } from "@/features/piano-roll/types";
+import type { PianoRollView, Note, MarqueeRect } from "@/features/piano-roll/types";
 import { eventToMusicPoint } from "@/features/piano-roll/utils/eventToMusicPoint";
 import { findNoteAt } from "@/features/piano-roll/utils/findNoteAt";
 import { useNoteStore } from "@/features/piano-roll/store/useNoteStore";
 import { snapTick } from "@/features/piano-roll/utils/snapTick";
 import { moveNoteGroup } from "@/features/piano-roll/utils/moveNoteGroup";
+import { useMarqueeSelection } from "@/features/piano-roll/hooks/useMarqueeSelection";
 import { DEFAULT_NOTE_DURATION_TICKS, DEFAULT_NOTE_VELOCITY, SNAP_TICKS } from "@/features/piano-roll/constants";
 import type { KeyboardEvent, RefObject } from "react";
 
@@ -17,14 +18,19 @@ type Options = {
     endTick: number;
     dragCandidateRef: RefObject<Note | null>;
     previewRef: RefObject<Record<string, Note> | null>;
+    marqueeRef: RefObject<MarqueeRect | null>;
     requestRedraw: () => void;
 };
 
-export function useNoteInteractions({ canvasRef, width, height, getView, endTick, dragCandidateRef, previewRef, requestRedraw }: Options) {
+export function useNoteInteractions({ canvasRef, width, height, getView, endTick, dragCandidateRef, previewRef, marqueeRef, requestRedraw }: Options) {
     const [menuNoteId, SetMenuNoteId] = useState<string | null>(null);
     const [alert, setAlert] = useState("");
     const suppressClickRef = useRef(false);
     const dragNotesRef = useRef<readonly Note[]>([]);
+    const { startMarquee, updateMarquee, resetMarquee } = useMarqueeSelection({
+        canvasRef, marqueeRef, width, height, endTick, getView, requestRedraw,
+        onSelectionChange: announceSelection,
+    });
 
     function commitMove(originals: readonly Note[], moved: readonly Note[]) {
         if (moved === originals || moved.length === 0) return;
@@ -34,21 +40,30 @@ export function useNoteInteractions({ canvasRef, width, height, getView, endTick
             : `Moved ${moved.length} notes`);
     }
 
+    function announceSelection() {
+        const count = Object.values(useNoteStore.getState().notes).filter(note => note.selected).length;
+        setAlert(`${count} ${count === 1 ? 'note' : 'notes'} selected`);
+    }
+
     function selectNote(id: string, additive = false) {
         const store = useNoteStore.getState();
         if (!store.notes[id]) return;
         if (additive) store.toggleNoteSelection(id);
         else store.selectNote(id);
-        const count = Object.values(useNoteStore.getState().notes).filter(note => note.selected).length;
-        setAlert(`${count} ${count === 1 ? 'note' : 'notes'} selected`);
+        announceSelection();
     }
 
     useDrag(
-        ({ movement: [dx, dy], last, tap }) => {
+        ({ movement: [dx, dy], last, tap, canceled, event }) => {
+            const interrupted = canceled || event?.type === 'pointercancel';
+            if (updateMarquee({ dx, dy, last, tap, canceled: interrupted })) {
+                if (!tap) suppressClickRef.current = true;
+                return;
+            }
             const original = dragCandidateRef.current;
             if (!original) return;
 
-            if (tap) {
+            if (tap || interrupted) {
                 previewRef.current = null;
                 dragCandidateRef.current = null;
                 dragNotesRef.current = [];
@@ -178,11 +193,16 @@ export function useNoteInteractions({ canvasRef, width, height, getView, endTick
         dragCandidateRef.current = null;
         dragNotesRef.current = [];
         suppressClickRef.current = false;
-        if (event.button !== 0 || event.shiftKey || event.ctrlKey || event.metaKey) return
+        resetMarquee();
+        if (event.button !== 0 || event.shiftKey) return
         const point = eventToMusicPoint(event, width, height, getView())
-        dragCandidateRef.current = point
-            ? findNoteAt(useNoteStore.getState().notes, point.tick, point.pitch) ?? null
-            : null
+        if (!point) return
+        const match = findNoteAt(useNoteStore.getState().notes, point.tick, point.pitch)
+        if (event.ctrlKey || event.metaKey) {
+            if (!match && point.tick >= 0 && point.tick < endTick) startMarquee(point.x, point.y)
+            return
+        }
+        dragCandidateRef.current = match ?? null
     }
 
     return { menuNoteId, handleCanvasContextMenu, handleCanvasClick, handleEditorKeyDown, deleteNote, selectNote, alert, handleCanvasPointerDown }

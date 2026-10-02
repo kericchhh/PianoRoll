@@ -1,11 +1,12 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useId } from "react";
 import { drawTimeGrid } from "@/features/piano-roll/utils/drawTimeGrid";
 import { drawPitchRows } from "@/features/piano-roll/utils/drawPitchRows";
 import { drawNote } from "@/features/piano-roll/utils/drawNote";
+import { drawMarquee } from "@/features/piano-roll/utils/drawMarquee";
 import { clampScroll } from "@/features/piano-roll/utils/clampScroll";
 import { clampScale } from "@/features/piano-roll/utils/clampScale";
 import { useNoteStore } from "@/features/piano-roll/store/useNoteStore";
-import type { PianoRollView, Note } from "@/features/piano-roll/types";
+import type { PianoRollView, Note, MarqueeRect } from "@/features/piano-roll/types";
 import * as ContextMenu from "@radix-ui/react-context-menu";
 import { NoteContextMenuContent } from "@/features/piano-roll/components/NoteContextMenuContent";
 import { useNoteInteractions } from "@/features/piano-roll/hooks/useNoteInteractions";
@@ -21,6 +22,8 @@ export function PianoRollCanvas() {
     const editorRef = useRef<HTMLDivElement>(null);
     const dragCandidateRef = useRef<Note | null>(null);
     const previewRef = useRef<Record<string, Note> | null>(null);
+    const marqueeRef = useRef<MarqueeRect | null>(null);
+    const instructionsId = useId();
     const [barCount, setBarCount] = useState(8);
     const endTick = barCount * BEATS_PER_BAR * PPQ;
     const width = 600;
@@ -45,7 +48,7 @@ export function PianoRollCanvas() {
         handleCanvasPointerDown
     } = useNoteInteractions({
         canvasRef, getView: getPianoRollView, width, height, endTick,
-        dragCandidateRef, previewRef, requestRedraw
+        dragCandidateRef, previewRef, marqueeRef, requestRedraw
     })
 
 
@@ -99,7 +102,7 @@ export function PianoRollCanvas() {
                 const displayedNote = previews?.[note.id] ?? note
                 if (isVisible(displayedNote)) drawNote(context, displayedNote, view)
             }
-
+            if (marqueeRef.current) drawMarquee(context, marqueeRef.current)
         }
         scaleRef.current = clampScale(scaleRef.current, endTick, width)
         scrollRef.current = clampScroll(scrollRef.current, endTick, scaleRef.current, width)
@@ -136,6 +139,7 @@ export function PianoRollCanvas() {
                 ref={editorRef}
                 role="group"
                 aria-label="Piano roll editor"
+                aria-describedby={instructionsId}
                 tabIndex={0}
                 onKeyDown={handleEditorKeyDown}
                 className="focus-visible:outline-2 focus-visible:outline-blue-700"
@@ -152,7 +156,10 @@ export function PianoRollCanvas() {
                                 editorRef.current?.focus({ preventScroll: true})
                             }}
                             onContextMenuCapture={handleCanvasContextMenu}
-                            onPointerDown={handleCanvasPointerDown}
+                            onPointerDown={(event) => {
+                                handleCanvasPointerDown(event)
+                                editorRef.current?.focus({ preventScroll: true })
+                            }}
                         />
                     </ContextMenu.Trigger>
                     <NoteContextMenuContent
@@ -161,6 +168,11 @@ export function PianoRollCanvas() {
                         onDeleteNote={deleteNote}
                     />
                 </ContextMenu.Root>
+                <p id={instructionsId} className="sr-only">
+                    Ctrl or Command-click toggles a note. Ctrl or Command-drag empty grid
+                    selects overlapping notes. Use the note-list buttons to toggle selection
+                    with the keyboard, arrow keys to move selected notes, and Delete to remove them.
+                </p>
                 <ul aria-label="Notes" className="sr-only focus-within:not-sr-only">
                     {Object.values(notes).map((note) => (
                         <li key={note.id}>

@@ -34,7 +34,7 @@ function startDrag(note: Note, otherNotes: Note[] = []) {
       pixelsPerTick: 0.5, scrollOffsetX: 0,
       highestVisiblePitch: 72, rowHeight: 20,
     }),
-    endTick: 480, dragCandidateRef, previewRef, requestRedraw,
+    endTick: 480, dragCandidateRef, previewRef, marqueeRef: { current: null }, requestRedraw,
   }));
 
   const drag = vi.mocked(useDrag).mock.calls[0]?.[0];

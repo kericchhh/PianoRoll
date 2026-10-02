@@ -16,5 +16,5 @@ export function eventToMusicPoint(event: MouseEvent<HTMLCanvasElement>, width: n
     const logicalY = y * height / canvas.clientHeight
     const tick = pixelToTick(logicalX, view.pixelsPerTick, view.scrollOffsetX)
     const pitch = pixelToPitch(logicalY, view.highestVisiblePitch, view.rowHeight)
-    return { tick: tick, pitch: pitch}
+    return { tick, pitch, x: logicalX, y: logicalY }
 }
