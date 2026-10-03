@@ -1,0 +1,29 @@
+import type { Note, PianoRollView } from '@/features/piano-roll/types';
+import { tickToPixel } from '../utils/tickToPixel';
+import { pitchToPixel } from '../utils/pitchtoPixel';
+
+export function drawNote(
+  context: CanvasRenderingContext2D,
+  note: Pick<Note, 'pitch' | 'startTick' | 'durationTicks' | 'selected'>,
+  view: PianoRollView,
+  fillStyle = '#2563eb',
+): void {
+  const x = tickToPixel(note.startTick, view.pixelsPerTick, view.scrollOffsetX);
+  const y = pitchToPixel(note.pitch, view.highestVisiblePitch, view.rowHeight);
+  const width = note.durationTicks * view.pixelsPerTick;
+
+  context.fillStyle = fillStyle;
+  context.fillRect(x, y, width, view.rowHeight);
+
+  if (note.selected) {
+    context.strokeStyle = '#ffffff';
+    const strokeWidth = Math.min(2, width / 2, view.rowHeight / 2);
+    context.lineWidth = strokeWidth;
+    context.strokeRect(
+      x + strokeWidth / 2,
+      y + strokeWidth / 2,
+      Math.max(0, width - strokeWidth),
+      view.rowHeight - strokeWidth,
+    );
+  }
+}

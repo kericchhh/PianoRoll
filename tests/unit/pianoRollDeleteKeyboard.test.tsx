@@ -18,7 +18,9 @@ function makeNote(id: string, pitch = 60): Note {
 
 beforeEach(() => {
   useNoteStore.setState({ notes: {} });
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null);
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
+    () => null,
+  );
 });
 
 afterEach(() => {
@@ -59,7 +61,9 @@ test('Delete in the timeline select does not remove a note', () => {
   store.selectNote('a');
   render(<PianoRollCanvas />);
 
-  const timelineSelect = screen.getByRole('combobox', { name: /timeline length/i });
+  const timelineSelect = screen.getByRole('combobox', {
+    name: /timeline length/i,
+  });
   timelineSelect.focus();
   fireEvent.keyDown(timelineSelect, { key: 'Delete' });
 
@@ -97,7 +101,9 @@ test('deleting a focused note-list button keeps focus inside the editor', () => 
   render(<PianoRollCanvas />);
 
   const editor = screen.getByRole('group', { name: 'Piano roll editor' });
-  const noteButton = screen.getByRole('button', { name: /Pitch 60, tick 120/i });
+  const noteButton = screen.getByRole('button', {
+    name: /Pitch 60, tick 120/i,
+  });
   noteButton.focus();
   fireEvent.keyDown(noteButton, { key: 'Delete' });
 
@@ -129,8 +135,13 @@ test('arrow keys move the selected note and announce its new position', () => {
   fireEvent.keyDown(editor, { key: 'ArrowRight', repeat: true });
   fireEvent.keyDown(editor, { key: 'ArrowUp' });
 
-  expect(useNoteStore.getState().notes.a).toMatchObject({ startTick: 240, pitch: 61 });
-  expect(screen.getByRole('status').textContent).toMatch(/moved pitch 60 to 61 at tick 240/i);
+  expect(useNoteStore.getState().notes.a).toMatchObject({
+    startTick: 240,
+    pitch: 61,
+  });
+  expect(screen.getByRole('status').textContent).toMatch(
+    /moved pitch 60 to 61 at tick 240/i,
+  );
 });
 
 test('arrow movement works from the focused note-list button', () => {
@@ -157,7 +168,10 @@ test('arrows stop at timeline and pitch boundaries', () => {
   fireEvent.keyDown(editor, { key: 'ArrowRight' });
   fireEvent.keyDown(editor, { key: 'ArrowUp' });
 
-  expect(useNoteStore.getState().notes.a).toMatchObject({ startTick: 15240, pitch: 127 });
+  expect(useNoteStore.getState().notes.a).toMatchObject({
+    startTick: 15240,
+    pitch: 127,
+  });
 });
 
 test('modified arrows do not move the selected note', () => {
@@ -170,7 +184,10 @@ test('modified arrows do not move the selected note', () => {
   fireEvent.keyDown(editor, { key: 'ArrowRight', shiftKey: true });
   fireEvent.keyDown(editor, { key: 'ArrowUp', ctrlKey: true });
 
-  expect(useNoteStore.getState().notes.a).toMatchObject({ startTick: 120, pitch: 60 });
+  expect(useNoteStore.getState().notes.a).toMatchObject({
+    startTick: 120,
+    pitch: 60,
+  });
 });
 
 test('Ctrl/Cmd canvas clicks toggle selection and an ordinary click selects exclusively', () => {
@@ -221,14 +238,26 @@ test('note-list buttons toggle a group, which can be moved and deleted from the 
   expect(useNoteStore.getState().notes.b.startTick).toBe(120);
   fireEvent.keyDown(b, { key: 'ArrowRight' });
   fireEvent.keyDown(b, { key: 'ArrowUp' });
-  expect(useNoteStore.getState().notes.a).toMatchObject({ startTick: 120, pitch: 61 });
-  expect(useNoteStore.getState().notes.b).toMatchObject({ startTick: 240, pitch: 65 });
-  expect(useNoteStore.getState().notes.unselected).toEqual(makeNote('unselected', 70));
+  expect(useNoteStore.getState().notes.a).toMatchObject({
+    startTick: 120,
+    pitch: 61,
+  });
+  expect(useNoteStore.getState().notes.b).toMatchObject({
+    startTick: 240,
+    pitch: 65,
+  });
+  expect(useNoteStore.getState().notes.unselected).toEqual(
+    makeNote('unselected', 70),
+  );
   expect(document.activeElement).toBe(b);
-  expect(screen.getByRole('status').textContent).toBe('Moved 2 notes');
+  expect(screen.getByRole('status').textContent).toBe(
+    'Moved 2 notes; pitch 61, tick 120',
+  );
 
   fireEvent.keyDown(b, { key: 'Delete' });
   expect(Object.keys(useNoteStore.getState().notes)).toEqual(['unselected']);
-  expect(document.activeElement).toBe(screen.getByRole('group', { name: 'Piano roll editor' }));
+  expect(document.activeElement).toBe(
+    screen.getByRole('group', { name: 'Piano roll editor' }),
+  );
   expect(screen.getByRole('status').textContent).toBe('Deleted 2 notes');
 });

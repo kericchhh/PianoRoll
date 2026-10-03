@@ -2,7 +2,6 @@ import { expect, test } from 'vitest';
 import { pixelToPitch } from '@/features/piano-roll/utils/pixelToPitch';
 import { pitchToPixel } from '@/features/piano-roll/utils/pitchtoPixel';
 
-// Rows include their top edge and exclude their bottom edge.
 test.each([
   [0, 72],
   [1, 72],

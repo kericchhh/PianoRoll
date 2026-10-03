@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest';
-import { drawNote } from '@/features/piano-roll/utils/drawNote';
+import { drawNote } from '@/features/piano-roll/rendering/drawNote';
 
 function makeContext() {
   const fillRect = vi.fn();
@@ -57,4 +57,18 @@ test('draws an unselected origin ghost in gray', () => {
   expect(context.fillStyle).toBe('#94a3b8');
   expect(fillRect).toHaveBeenCalledWith(60, 20, 60, 20);
   expect(strokeRect).not.toHaveBeenCalled();
+});
+
+test('keeps a selected note outline inside its bounds at the 32-bar minimum zoom', () => {
+  const { context, strokeRect } = makeContext();
+  const scale = 600 / (32 * 4 * 480);
+  drawNote(
+    context,
+    { pitch: 72, startTick: 0, durationTicks: 120, selected: true },
+    { ...view, pixelsPerTick: scale },
+  );
+  const [x, , width] = strokeRect.mock.calls[0];
+  expect(width).toBeGreaterThan(0);
+  expect(x - context.lineWidth / 2).toBeCloseTo(0);
+  expect(x + width + context.lineWidth / 2).toBeCloseTo(120 * scale);
 });
