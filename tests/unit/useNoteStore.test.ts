@@ -1,6 +1,10 @@
-import { beforeEach, expect, test } from 'vitest';
+import { beforeEach, expect, test, vi } from 'vitest';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 import type { Note } from '@/features/piano-roll/types';
+import {
+  createNoteIndex,
+  queryNoteIndex,
+} from '@/features/piano-roll/utils/noteIndex';
 
 function makeNote(id: string): Note {
   return {
@@ -73,7 +77,9 @@ test('moves only the requested note while preserving its other fields', () => {
   store.moveNote('a', 480, 72);
 
   expect(useNoteStore.getState().notes.a).toEqual({
-    ...makeNote('a'), startTick: 480, pitch: 72,
+    ...makeNote('a'),
+    startTick: 480,
+    pitch: 72,
   });
   expect(useNoteStore.getState().notes.b).toBe(before.b);
   expect(before.a).toEqual(makeNote('a'));
@@ -118,8 +124,10 @@ test('batch selection replaces the selected set in one update without mutating n
   for (const id of ['a', 'b', 'c', 'd']) store.addNote(makeNote(id));
   store.selectNote('c');
   const before = useNoteStore.getState().notes;
-  const updates: typeof before[] = [];
-  const unsubscribe = useNoteStore.subscribe(state => updates.push(state.notes));
+  const updates: (typeof before)[] = [];
+  const unsubscribe = useNoteStore.subscribe((state) =>
+    updates.push(state.notes),
+  );
 
   store.selectNotes(['a', 'b', 'a', 'missing']);
   unsubscribe();
@@ -145,7 +153,9 @@ test('an empty batch clears selection while an unchanged batch preserves state i
 
   store.selectNotes([]);
   const cleared = useNoteStore.getState();
-  expect(Object.values(cleared.notes).every(note => !note.selected)).toBe(true);
+  expect(Object.values(cleared.notes).every((note) => !note.selected)).toBe(
+    true,
+  );
   store.selectNotes([]);
   expect(useNoteStore.getState()).toBe(cleared);
 });
@@ -156,8 +166,10 @@ test('batch movement publishes one update and preserves unrelated notes', () => 
   store.addNote(makeNote('b'));
   store.addNote(makeNote('c'));
   const before = useNoteStore.getState().notes;
-  const updates: typeof before[] = [];
-  const unsubscribe = useNoteStore.subscribe(state => updates.push(state.notes));
+  const updates: (typeof before)[] = [];
+  const unsubscribe = useNoteStore.subscribe((state) =>
+    updates.push(state.notes),
+  );
 
   store.moveNotes([
     { id: 'a', startTick: 240, pitch: 61 },
@@ -188,4 +200,96 @@ test('batch deletion removes only its targets and ignores duplicate or unknown I
   store.deleteNotes(['missing']);
   store.moveNotes([{ id: 'missing', startTick: 0, pitch: 0 }]);
   expect(useNoteStore.getState()).toBe(after);
+});
+
+test('resizing changes only duration and preserves unrelated note references', () => {
+  const store = useNoteStore.getState();
+  store.addNote(makeNote('a'));
+  store.addNote(makeNote('b'));
+  const before = useNoteStore.getState().notes;
+
+  store.resizeNote('a', 360);
+
+  expect(useNoteStore.getState().notes.a).toEqual({
+    ...makeNote('a'),
+    durationTicks: 360,
+  });
+  expect(useNoteStore.getState().notes.b).toBe(before.b);
+  expect(before.a.durationTicks).toBe(120);
+});
+
+test('unknown or unchanged duration edits preserve the state and notes references', () => {
+  const store = useNoteStore.getState();
+  store.addNote(makeNote('a'));
+  const before = useNoteStore.getState();
+  const updates = vi.fn();
+  const unsubscribe = useNoteStore.subscribe(updates);
+
+  store.resizeNote('missing', 240);
+  store.resizeNote('a', 120);
+  store.resizeNotes([
+    { id: 'a', durationTicks: 120 },
+    { id: 'missing', durationTicks: 240 },
+  ]);
+  store.resizeNotes([]);
+  unsubscribe();
+
+  expect(useNoteStore.getState()).toBe(before);
+  expect(useNoteStore.getState().notes).toBe(before.notes);
+  expect(updates).not.toHaveBeenCalled();
+});
+
+test('batch resizing publishes one update and preserves unmodified notes', () => {
+  const store = useNoteStore.getState();
+  for (const id of ['a', 'b', 'c']) store.addNote(makeNote(id));
+  const before = useNoteStore.getState().notes;
+  const updates: (typeof before)[] = [];
+  const unsubscribe = useNoteStore.subscribe((state) =>
+    updates.push(state.notes),
+  );
+
+  store.resizeNotes([
+    { id: 'a', durationTicks: 240 },
+    { id: 'b', durationTicks: 360 },
+    { id: 'missing', durationTicks: 480 },
+  ]);
+  unsubscribe();
+
+  expect(updates).toHaveLength(1);
+  expect(updates[0].a).toEqual({ ...before.a, durationTicks: 240 });
+  expect(updates[0].b).toEqual({ ...before.b, durationTicks: 360 });
+  expect(updates[0].c).toBe(before.c);
+  expect(before.a.durationTicks).toBe(120);
+});
+
+test('invalid duration updates cannot create zero, fractional or non-finite notes', () => {
+  const store = useNoteStore.getState();
+  store.addNote(makeNote('a'));
+  const before = useNoteStore.getState();
+
+  for (const duration of [0, -120, 119, 120.5, NaN, Infinity]) {
+    store.resizeNote('a', duration);
+    expect(useNoteStore.getState()).toBe(before);
+  }
+});
+
+test('a changed duration can rebuild the note index and query the newly covered time', () => {
+  const store = useNoteStore.getState();
+  store.addNote(makeNote('a'));
+  const region = {
+    startTick: 300,
+    endTick: 360,
+    lowestPitch: 60,
+    highestPitch: 60,
+  };
+  const before = createNoteIndex(useNoteStore.getState().notes);
+  expect(queryNoteIndex(before, region)).toEqual([]);
+
+  store.resizeNote('a', 360);
+  const after = createNoteIndex(useNoteStore.getState().notes);
+
+  expect(queryNoteIndex(after, region)).toEqual([
+    useNoteStore.getState().notes.a,
+  ]);
+  expect(queryNoteIndex(before, region)).toEqual([]);
 });

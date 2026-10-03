@@ -17,6 +17,10 @@ export interface NoteStoreState {
   moveNotes: (
     positions: readonly Pick<Note, 'id' | 'startTick' | 'pitch'>[],
   ) => void;
+  resizeNote: (id: string, durationTicks: number) => void;
+  resizeNotes: (
+    durations: readonly Pick<Note, 'id' | 'durationTicks'>[],
+  ) => void;
   deleteNote: (id: string) => void;
   deleteNotes: (ids: readonly string[]) => void;
 }
@@ -42,4 +46,5 @@ export interface NoteRegion {
   highestPitch: number;
 }
 
-export type GestureMode = 'idle' | 'move' | 'marquee' | 'pan' | 'select';
+export type GestureMode =
+  'idle' | 'move' | 'resize' | 'marquee' | 'pan' | 'select';

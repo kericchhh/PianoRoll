@@ -206,12 +206,12 @@ export function PianoRollCanvas() {
                   tabIndex={0}
                   role="group"
                   aria-label={`Selected note: pitch ${selectedNote.pitch}, tick ${selectedNote.startTick}, duration ${selectedNote.durationTicks} ticks`}
-                  aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Delete"
+                  aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowLeft Shift+ArrowRight Delete"
                   className="absolute outline-2 outline-offset-1 outline-transparent group-focus-within:outline-blue-950 focus-visible:outline-blue-950"
                 >
                   <span className="sr-only">
-                    Use arrow keys to move this selection, or Delete to remove
-                    it.
+                    Use arrow keys to move this selection, Shift+Left or
+                    Shift+Right to resize it, or Delete to remove it.
                   </span>
                 </div>
               )}
@@ -226,9 +226,10 @@ export function PianoRollCanvas() {
         <p id={instructionsId} className="sr-only">
           Ctrl or Command-click toggles a note. Ctrl or Command-drag empty grid
           selects overlapping notes. Use the note-list buttons to toggle
-          selection with the keyboard, arrow keys to move selected notes, and
-          Delete to remove them. Use the New note pitch and Start tick fields
-          followed by Add note to insert a note.
+          selection with the keyboard, arrow keys to move selected notes,
+          Shift+Left or Shift+Right to resize them, and Delete to remove them.
+          Drag a note's right edge to resize the selection. Use the New note
+          pitch and Start tick fields followed by Add note to insert a note.
         </p>
         <NoteList notes={notes} onSelect={selectNote} />
         <p role="status" aria-atomic="true" className="sr-only">

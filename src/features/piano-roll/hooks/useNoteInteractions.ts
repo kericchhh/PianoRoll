@@ -12,6 +12,9 @@ import { findNoteAt } from '@/features/piano-roll/utils/findNoteAt';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 import { snapTick } from '@/features/piano-roll/utils/snapTick';
 import { moveNoteGroup } from '@/features/piano-roll/utils/moveNoteGroup';
+import { resizeNoteGroup } from '@/features/piano-roll/utils/resizeNoteGroup';
+import { isNoteResizeHandle } from '@/features/piano-roll/utils/isNoteResizeHandle';
+import { tickToPixel } from '@/features/piano-roll/utils/tickToPixel';
 import { useMarqueeSelection } from '@/features/piano-roll/hooks/useMarqueeSelection';
 import { SNAP_TICKS } from '@/features/piano-roll/constants';
 import { getCanvasScale } from '@/features/piano-roll/utils/canvasCoordinates';
@@ -62,12 +65,14 @@ export function useNoteInteractions({
     deleteNote,
     deleteNotes,
     commitMove,
+    commitResize,
     announceSelection,
   } = useNoteActions(endTick, onReveal);
   const handleEditorKeyDown = useNoteKeyboard({
     endTick,
     gestureModeRef,
     commitMove,
+    commitResize,
     deleteNotes,
   });
   const { startMarquee, updateMarquee, resetMarquee } = useMarqueeSelection({
@@ -138,16 +143,22 @@ export function useNoteInteractions({
 
       const originals = dragNotesRef.current;
       const view = getView();
+      const resizing = gestureModeRef.current === 'resize';
+      const anchorTick =
+        original.startTick + (resizing ? original.durationTicks : 0);
       const tickDelta =
-        snapTick(
-          original.startTick +
-            (dx * dragScaleRef.current.x) / view.pixelsPerTick,
-          SNAP_TICKS,
-        ) - original.startTick;
+        resizing && dx === 0
+          ? 0
+          : snapTick(
+              anchorTick + (dx * dragScaleRef.current.x) / view.pixelsPerTick,
+              SNAP_TICKS,
+            ) - anchorTick;
       const pitchDelta = -Math.round(
         (dy * dragScaleRef.current.y) / view.rowHeight,
       );
-      const moved = moveNoteGroup(originals, tickDelta, pitchDelta, endTick);
+      const edited = resizing
+        ? resizeNoteGroup(originals, tickDelta, endTick)
+        : moveNoteGroup(originals, tickDelta, pitchDelta, endTick);
       suppressClickRef.current = true;
 
       if (last) {
@@ -155,13 +166,14 @@ export function useNoteInteractions({
         dragCandidateRef.current = null;
         dragNotesRef.current = [];
         gestureModeRef.current = 'idle';
-        commitMove(originals, moved);
+        if (resizing) commitResize(originals, edited);
+        else commitMove(originals, edited);
         requestRedraw();
         return;
       }
 
       previewRef.current = Object.fromEntries(
-        moved.map((note) => [note.id, note]),
+        edited.map((note) => [note.id, note]),
       );
       requestRedraw();
     },
@@ -258,7 +270,27 @@ export function useNoteInteractions({
       return;
     }
     dragCandidateRef.current = match ?? null;
-    gestureModeRef.current = match ? 'move' : 'select';
+    if (!match) {
+      gestureModeRef.current = 'select';
+      return;
+    }
+    const view = getView();
+    const endpointX = tickToPixel(
+      match.startTick + match.durationTicks,
+      view.pixelsPerTick,
+      view.scrollOffsetX,
+    );
+    gestureModeRef.current =
+      endpointX > 0 &&
+      endpointX <= width &&
+      isNoteResizeHandle(
+        match,
+        point.tick,
+        view.pixelsPerTick,
+        dragScaleRef.current.x,
+      )
+        ? 'resize'
+        : 'move';
   }
 
   return {

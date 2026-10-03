@@ -128,6 +128,31 @@ export function useNoteActions(
     [activeNoteId, announce, onReveal],
   );
 
+  const commitResize = useCallback(
+    (originals: readonly Note[], resized: readonly Note[]) => {
+      if (resized === originals || resized.length === 0) return;
+      const store = useNoteStore.getState();
+      const remaining = resized.filter((note) => {
+        const current = store.notes[note.id];
+        return current && current.durationTicks !== note.durationTicks;
+      });
+      if (remaining.length === 0) return;
+      store.resizeNotes(remaining);
+      const anchor =
+        remaining.find((note) => note.id === activeNoteId) ?? remaining[0];
+      onReveal?.([
+        anchor,
+        ...remaining.filter((note) => note.id !== anchor.id),
+      ]);
+      announce(
+        remaining.length === 1
+          ? `Resized pitch ${anchor.pitch} to duration ${anchor.durationTicks} ticks`
+          : `Resized ${remaining.length} notes; pitch ${anchor.pitch}, duration ${anchor.durationTicks} ticks`,
+      );
+    },
+    [activeNoteId, announce, onReveal],
+  );
+
   return {
     announcement,
     activeNoteId,
@@ -138,5 +163,6 @@ export function useNoteActions(
     deleteNote,
     deleteNotes,
     commitMove,
+    commitResize,
   };
 }

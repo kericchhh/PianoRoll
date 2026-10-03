@@ -14,6 +14,10 @@ Keyboard users can create a note with the New note pitch / Start tick form.
 Click a note to select it; Ctrl/Cmd-click toggles selection, and Ctrl/Cmd-drag
 empty grid replaces selection with overlapping notes. Shift-drag pans;
 Ctrl-wheel zooms. Arrow keys move the selection and Delete removes it.
+Drag a note's visible right edge, or use Shift+Left/Right, to resize the
+selection by a shared tick delta. Notes have a minimum duration of 120 ticks.
+Notes extending past a shortened timeline may be shortened but cannot be
+extended further; resizing does not force them inside the timeline.
 Movement reveals the selection without changing the stored MIDI coordinates.
 
 ## Verification

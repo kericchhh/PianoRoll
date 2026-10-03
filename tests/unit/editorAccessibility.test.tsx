@@ -121,3 +121,123 @@ test('the selected-note DOM overlay exposes keyboard editing and follows pitch r
   expect(overlay.getAttribute('tabindex')).toBe('0');
   expect(overlay.getAttribute('aria-keyshortcuts')).toContain('Delete');
 });
+
+test.each(['editor', 'overlay', 'list'] as const)(
+  'Shift+Left/Right resize the selection from the %s and retain focus',
+  (target) => {
+    const other = {
+      ...note,
+      id: 'b',
+      pitch: 71,
+      startTick: 360,
+      durationTicks: 240,
+    };
+    useNoteStore.setState({ notes: { a: note, b: other } });
+    render(<PianoRollCanvas />);
+    const element =
+      target === 'editor'
+        ? screen.getByRole('group', { name: 'Piano roll editor' })
+        : target === 'overlay'
+          ? screen.getByRole('group', { name: /Selected note: pitch 72/ })
+          : screen.getByRole('button', { name: /Pitch 72, tick 120/ });
+    element.focus();
+    const updates = vi.fn();
+    const unsubscribe = useNoteStore.subscribe(updates);
+
+    fireEvent.keyDown(element, { key: 'ArrowRight', shiftKey: true });
+
+    expect(updates).toHaveBeenCalledTimes(1);
+    expect(useNoteStore.getState().notes.a).toEqual({
+      ...note,
+      durationTicks: 240,
+    });
+    expect(useNoteStore.getState().notes.b).toEqual({
+      ...other,
+      durationTicks: 360,
+    });
+    expect(document.activeElement).toBe(element);
+    expect(screen.getByRole('status').textContent).toMatch(
+      /resized 2 notes.*duration 240 ticks/i,
+    );
+    expect(
+      screen.getByRole('button', {
+        name: /Pitch 72, tick 120, duration 240 ticks/,
+      }),
+    ).toBeDefined();
+
+    fireEvent.keyDown(element, { key: 'ArrowLeft', shiftKey: true });
+    unsubscribe();
+    expect(useNoteStore.getState().notes).toEqual({ a: note, b: other });
+    expect(document.activeElement).toBe(element);
+  },
+);
+
+test('resizing at either bound is a no-op without live-region announcements', () => {
+  const endpointNote = { ...note, startTick: 15240 };
+  useNoteStore.setState({ notes: { a: endpointNote } });
+  render(<PianoRollCanvas />);
+  const editor = screen.getByRole('group', { name: 'Piano roll editor' });
+  const before = useNoteStore.getState();
+  const liveNode = screen.getByRole('status').firstChild;
+
+  fireEvent.keyDown(editor, { key: 'ArrowRight', shiftKey: true });
+  fireEvent.keyDown(editor, { key: 'ArrowLeft', shiftKey: true });
+
+  expect(useNoteStore.getState()).toBe(before);
+  expect(screen.getByRole('status').textContent).toBe('');
+  expect(screen.getByRole('status').firstChild).toBe(liveNode);
+});
+
+test('Shift+Up/Down and other modified horizontal keys do not resize or move notes', () => {
+  useNoteStore.setState({ notes: { a: note } });
+  render(<PianoRollCanvas />);
+  const editor = screen.getByRole('group', { name: 'Piano roll editor' });
+  const before = useNoteStore.getState();
+
+  for (const key of ['ArrowUp', 'ArrowDown']) {
+    fireEvent.keyDown(editor, { key, shiftKey: true });
+  }
+  for (const modifier of ['ctrlKey', 'metaKey', 'altKey']) {
+    fireEvent.keyDown(editor, {
+      key: 'ArrowRight',
+      shiftKey: true,
+      [modifier]: true,
+    });
+  }
+
+  expect(useNoteStore.getState()).toBe(before);
+});
+
+test('Shift+Right in an insertion input keeps the editor selection unchanged', () => {
+  useNoteStore.setState({ notes: { a: note } });
+  render(<PianoRollCanvas />);
+  const pitchInput = screen.getByRole('spinbutton', { name: 'New note pitch' });
+  pitchInput.focus();
+  const before = useNoteStore.getState();
+
+  fireEvent.keyDown(pitchInput, { key: 'ArrowRight', shiftKey: true });
+
+  expect(useNoteStore.getState()).toBe(before);
+  expect(document.activeElement).toBe(pitchInput);
+});
+
+test('resize shortcuts and instructions are exposed with the selected note', () => {
+  useNoteStore.setState({ notes: { a: note } });
+  render(<PianoRollCanvas />);
+  const editor = screen.getByRole('group', { name: 'Piano roll editor' });
+  const overlay = screen.getByRole('group', {
+    name: /Selected note: pitch 72/,
+  });
+  const instructions = document.getElementById(
+    editor.getAttribute('aria-describedby') ?? '',
+  );
+
+  expect(overlay.getAttribute('aria-keyshortcuts')).toContain(
+    'Shift+ArrowLeft',
+  );
+  expect(overlay.getAttribute('aria-keyshortcuts')).toContain(
+    'Shift+ArrowRight',
+  );
+  expect(instructions?.textContent).toMatch(/shift.*left.*right.*resize/i);
+  expect(overlay.textContent).toMatch(/shift.*left.*right.*resize/i);
+});

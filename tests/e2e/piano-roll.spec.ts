@@ -101,6 +101,131 @@ test('native note drag previews then commits without a generated add click', asy
   expect(Object.keys(await readNotes(page))).toEqual(['a']);
 });
 
+test('native right-edge resize previews the selected group and commits its durations', async ({
+  page,
+}) => {
+  const other = {
+    ...base,
+    id: 'b',
+    startTick: 360,
+    pitch: 71,
+    durationTicks: 240,
+  };
+  await seed(page, [base, other]);
+  const overlay = page.getByRole('group', { name: /Selected note: pitch 72/ });
+  const initialWidth = (await overlay.boundingBox())?.width;
+  if (!initialWidth) throw new Error('Selected note overlay is not visible');
+  await move(page, 115, 10);
+  await page.mouse.down();
+  await move(page, 175, 80);
+
+  expect(await readNotes(page)).toEqual({ a: base, b: other });
+  await expect
+    .poll(async () => (await overlay.boundingBox())?.width ?? 0)
+    .toBeCloseTo(initialWidth * 2, 1);
+  await page.mouse.up();
+
+  await expect
+    .poll(() => readNotes(page))
+    .toEqual({
+      a: { ...base, durationTicks: 240 },
+      b: { ...other, durationTicks: 360 },
+    });
+  await expect(page.getByRole('status')).toHaveText(
+    /Resized 2 notes.*duration 240 ticks/,
+  );
+  // The duration update must invalidate the hit-test index as well as the drawing.
+  const point = await position(page, 150, 10);
+  await page.mouse.click(point.x, point.y);
+  expect(Object.keys(await readNotes(page))).toEqual(['a', 'b']);
+  expect((await readNotes(page)).a.selected).toBe(true);
+  expect((await readNotes(page)).b.selected).toBe(false);
+});
+
+test('scaled and zoomed right-edge resizing keeps pointer capture outside the canvas', async ({
+  page,
+}) => {
+  await page.getByRole('img').evaluate((canvas) => {
+    (canvas as HTMLElement).style.width = '300px';
+    (canvas as HTMLElement).style.height = '120px';
+  });
+  await seed(page, [base]);
+  await move(page, 110, 10); // Five CSS pixels inside the endpoint.
+  await page.mouse.down();
+  await move(page, 170, 30);
+  await page.mouse.up();
+  await expect
+    .poll(async () => (await readNotes(page)).a)
+    .toEqual({ ...base, durationTicks: 240 });
+
+  const overlay = page.getByRole('group', { name: /Selected note: pitch 72/ });
+  const widthBeforeZoom = (await overlay.boundingBox())?.width;
+  if (!widthBeforeZoom) throw new Error('Selected note overlay is not visible');
+  await move(page, 130, 10);
+  await page.keyboard.down('Control');
+  await page.mouse.wheel(0, -100);
+  await page.keyboard.up('Control');
+  await expect
+    .poll(async () => (await overlay.boundingBox())?.width ?? 0)
+    .toBeGreaterThan(widthBeforeZoom);
+  const bounds = await overlay.boundingBox();
+  const canvas = await page.getByRole('img').boundingBox();
+  if (!bounds || !canvas) throw new Error('Editor surface is not visible');
+  const initialX = bounds.x + bounds.width - 2;
+  await page.mouse.move(initialX, bounds.y + 4);
+  await page.mouse.down();
+  await page.mouse.move(
+    initialX + bounds.width / 2,
+    canvas.y + canvas.height + 40,
+  );
+  expect((await readNotes(page)).a.durationTicks).toBe(240);
+  await page.mouse.up();
+
+  await expect
+    .poll(async () => (await readNotes(page)).a)
+    .toEqual({ ...base, durationTicks: 360 });
+  expect(Object.keys(await readNotes(page))).toEqual(['a']);
+});
+
+test('a viewport-clipped edge remains a move when the true endpoint is offscreen', async ({
+  page,
+}) => {
+  const note = { ...base, durationTicks: 1088 }; // Endpoint x=604, outside width=600.
+  await seed(page, [note]);
+  await move(page, 599, 10); // Within six pixels of the true endpoint.
+  await page.mouse.down();
+  await move(page, 659, 10);
+  await page.mouse.up();
+
+  await expect
+    .poll(async () => (await readNotes(page)).a)
+    .toEqual({ ...note, startTick: 240 });
+  expect(Object.keys(await readNotes(page))).toEqual(['a']);
+});
+
+test('note-list keyboard resizing preserves focus and announces duration without moving', async ({
+  page,
+}) => {
+  await seed(page, [base]);
+  const button = page.getByRole('button', {
+    name: /Pitch 72, tick 120, duration 120 ticks/,
+  });
+  await button.focus();
+  await page.keyboard.press('Shift+ArrowRight');
+
+  await expect(
+    page.getByRole('button', {
+      name: /Pitch 72, tick 120, duration 240 ticks/,
+    }),
+  ).toBeFocused();
+  await expect(page.getByRole('status')).toHaveText(
+    'Resized pitch 72 to duration 240 ticks',
+  );
+  expect((await readNotes(page)).a).toEqual({ ...base, durationTicks: 240 });
+  await page.keyboard.press('Shift+ArrowLeft');
+  expect((await readNotes(page)).a).toEqual(base);
+});
+
 test('pointer capture commits a note released outside the canvas and reveals it', async ({
   page,
 }) => {
