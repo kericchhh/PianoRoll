@@ -13,6 +13,7 @@ type Options = {
   scrollRef: RefObject<number>;
   endTick: number;
   width: number;
+  height?: number;
   requestRedraw: () => void;
   gestureModeRef: RefObject<GestureMode>;
   dragScaleRef: RefObject<{ x: number; y: number }>;
@@ -25,6 +26,7 @@ export function useZoomPan({
   scrollRef,
   endTick,
   width,
+  height = VIEWPORT_HEIGHT,
   requestRedraw,
   gestureModeRef,
   dragScaleRef,
@@ -42,7 +44,7 @@ export function useZoomPan({
         event.clientX,
         event.clientY,
         width,
-        VIEWPORT_HEIGHT,
+        height,
       );
       if (!point) return;
       const cursorX = point.x;

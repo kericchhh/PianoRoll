@@ -190,8 +190,12 @@ test('all origin ghosts are drawn beneath the moving notes when their positions 
       rectangles.push([context.fillStyle, x, y]);
     },
   };
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
-    context as unknown as CanvasRenderingContext2D,
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
+    function (this: HTMLCanvasElement) {
+      return this.getAttribute('aria-label') === 'Time grid preview'
+        ? (context as unknown as CanvasRenderingContext2D)
+        : null;
+    },
   );
   let frame: FrameRequestCallback | undefined;
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
@@ -224,9 +228,9 @@ test('all origin ghosts are drawn beneath the moving notes when their positions 
   act(() => frame?.(0));
 
   expect(rectangles).toEqual([
-    ['#8a6a7b', 60, 0],
-    ['#8a6a7b', 120, 20],
-    ['#ffc4a3', 120, 20],
-    ['#ffc4a3', 180, 40],
+    ['#74666c', 60, 0],
+    ['#74666c', 120, 20],
+    ['#ffb18a', 120, 20],
+    ['#ffb18a', 180, 40],
   ]);
 });

@@ -24,6 +24,7 @@
     "*.{json,css,md,yml,yaml}": "prettier --write"
   },
   "dependencies": {
+    "@fontsource/barlow": "^5.3.0",
     "@use-gesture/react": "^10.3.1",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",

@@ -5,6 +5,7 @@ import {
   useId,
   useMemo,
   useCallback,
+  type ReactNode,
 } from 'react';
 import { clampScroll } from '@/features/piano-roll/utils/clampScroll';
 import { clampScale } from '@/features/piano-roll/utils/clampScale';
@@ -38,6 +39,7 @@ import {
   VIEWPORT_WIDTH,
   VIEWPORT_HEIGHT,
   ROW_HEIGHT,
+  RULER_HEIGHT,
   INITIAL_HIGHEST_PITCH,
 } from '@/features/piano-roll/constants';
 import {
@@ -48,16 +50,25 @@ import { revealNotes } from '@/features/piano-roll/utils/revealNotes';
 import { useCanvasRenderer } from '@/features/piano-roll/hooks/useCanvasRenderer';
 import { NoteInsertionForm } from '@/features/piano-roll/components/NoteInsertionForm';
 import { NoteList } from '@/features/piano-roll/components/NoteList';
+import { PianoKeys } from '@/features/piano-roll/components/PianoKeys';
+import { EditorToolbar } from '@/features/piano-roll/components/EditorToolbar';
+import { StudioSidebar } from '@/features/piano-roll/components/StudioSidebar';
+import { useElementSize } from '@/shared/hooks/useElementSize';
 
-export function PianoRollCanvas() {
+export function PianoRollCanvas({
+  playbackControls,
+}: {
+  playbackControls?: ReactNode;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rulerRef = useRef<HTMLCanvasElement>(null);
   const scaleRef = useRef(0.5);
   const scrollRef = useRef(0);
   const editorRef = useRef<HTMLDivElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const activeNoteRef = useRef<string | null>(null);
-  const highestPitchRef = useRef(INITIAL_HIGHEST_PITCH);
+  const [highestPitch, setHighestPitch] = useState(INITIAL_HIGHEST_PITCH);
   const dragCandidateRef = useRef<Note | null>(null);
   const previewRef = useRef<Record<string, Note> | null>(null);
   const marqueeRef = useRef<MarqueeRect | null>(null);
@@ -65,17 +76,19 @@ export function PianoRollCanvas() {
   const timelineId = useId();
   const [barCount, setBarCount] = useState(INITIAL_BAR_COUNT);
   const endTick = barCount * BEATS_PER_BAR * PPQ;
-  const width = VIEWPORT_WIDTH;
-  const height = VIEWPORT_HEIGHT;
+  const { width, height } = useElementSize(editorRef, {
+    width: VIEWPORT_WIDTH,
+    height: VIEWPORT_HEIGHT,
+  });
   const notes = useNoteStore((state) => state.notes);
   const getPianoRollView = useCallback((): PianoRollView => {
     return {
       pixelsPerTick: scaleRef.current,
       scrollOffsetX: scrollRef.current,
-      highestVisiblePitch: highestPitchRef.current,
+      highestVisiblePitch: highestPitch,
       rowHeight: ROW_HEIGHT,
     };
-  }, []);
+  }, [highestPitch]);
   const index = useMemo(() => createNoteIndex(notes), [notes]);
   const queryNotes = useCallback(
     (region: NoteRegion) => queryNoteIndex(index, region),
@@ -83,6 +96,7 @@ export function PianoRollCanvas() {
   );
   const requestRedraw = useCanvasRenderer({
     canvasRef,
+    rulerRef,
     overlayRef,
     activeNoteRef,
     previewRef,
@@ -103,7 +117,7 @@ export function PianoRollCanvas() {
         endTick,
       );
       scrollRef.current = view.scrollOffsetX;
-      highestPitchRef.current = view.highestVisiblePitch;
+      setHighestPitch(view.highestVisiblePitch);
       requestRedraw();
     },
     [endTick, getPianoRollView, height, requestRedraw, width],
@@ -143,6 +157,7 @@ export function PianoRollCanvas() {
     scrollRef,
     endTick,
     width,
+    height,
     requestRedraw,
     gestureModeRef,
     dragScaleRef,
@@ -165,93 +180,130 @@ export function PianoRollCanvas() {
   }, [endTick, requestRedraw, width]);
 
   return (
-    <>
-      <div className="flex items-center gap-3">
-        <Label htmlFor={timelineId}>Timeline length</Label>
-        <Select
-          value={String(barCount)}
-          onValueChange={(value) => setBarCount(Number(value))}
-        >
-          <SelectTrigger id={timelineId} className="w-28">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {BAR_COUNTS.map((bars) => (
-              <SelectItem key={bars} value={String(bars)}>
-                {bars} bars
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <NoteInsertionForm endTick={endTick} onAdd={addNote} />
-      <div
-        ref={editorRef}
-        role="group"
-        aria-label="Piano roll editor"
-        aria-describedby={instructionsId}
-        tabIndex={0}
-        onKeyDown={handleEditorKeyDown}
-        className="group focus-visible:outline-2 focus-visible:outline-ring"
-      >
-        <ContextMenu>
-          <ContextMenuTrigger asChild>
-            <div
-              ref={surfaceRef}
-              className="relative w-fit touch-none select-none"
-              onClick={(event) => {
-                handleCanvasClick(event);
-                editorRef.current?.focus({ preventScroll: true });
-              }}
-              onContextMenuCapture={handleCanvasContextMenu}
-              onPointerDown={(event) => {
-                handleCanvasPointerDown(event);
-                editorRef.current?.focus({ preventScroll: true });
-              }}
+    <section
+      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border border-border bg-background"
+      aria-label="Piano roll workspace"
+    >
+      <EditorToolbar
+        playbackControls={playbackControls}
+        timeline={
+          <div className="flex items-center gap-3">
+            <Label
+              htmlFor={timelineId}
+              className="text-xs text-muted-foreground"
             >
-              <canvas
-                ref={canvasRef}
-                role="img"
-                aria-label="Time grid preview"
-                className="block border border-border bg-roll-background select-none"
-              />
-              {selectedNote && (
-                <div
-                  ref={overlayRef}
-                  data-note-overlay
-                  tabIndex={0}
-                  role="group"
-                  aria-label={`Selected note: pitch ${selectedNote.pitch}, tick ${selectedNote.startTick}, duration ${selectedNote.durationTicks} ticks`}
-                  aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowLeft Shift+ArrowRight Delete"
-                  className="absolute outline-2 outline-offset-1 outline-transparent group-focus-within:outline-ring focus-visible:outline-ring"
-                >
-                  <span className="sr-only">
-                    Use arrow keys to move this selection, Shift+Left or
-                    Shift+Right to resize it, or Delete to remove it.
-                  </span>
-                </div>
-              )}
-            </div>
-          </ContextMenuTrigger>
-          <NoteContextMenuContent
-            noteId={menuNoteId}
-            onSelectNote={(id) => selectNote(id)}
-            onDeleteNote={deleteNote}
-          />
-        </ContextMenu>
-        <p id={instructionsId} className="sr-only">
-          Ctrl or Command-click toggles a note. Ctrl or Command-drag empty grid
-          selects overlapping notes. Use the note-list buttons to toggle
-          selection with the keyboard, arrow keys to move selected notes,
-          Shift+Left or Shift+Right to resize them, and Delete to remove them.
-          Drag a note's right edge to resize the selection. Use the New note
-          pitch and Start tick fields followed by Add note to insert a note.
-        </p>
-        <NoteList notes={notes} onSelect={selectNote} />
-        <p role="status" aria-atomic="true" className="sr-only">
-          <span key={announcement.sequence}>{announcement.text}</span>
-        </p>
+              Timeline length
+            </Label>
+            <Select
+              value={String(barCount)}
+              onValueChange={(value) => setBarCount(Number(value))}
+            >
+              <SelectTrigger id={timelineId} className="w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {BAR_COUNTS.map((bars) => (
+                  <SelectItem key={bars} value={String(bars)}>
+                    {bars} bars
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
+        insertionForm={<NoteInsertionForm endTick={endTick} onAdd={addNote} />}
+      />
+      <div className="workspace-grid min-h-0 flex-1">
+        <div
+          className="flex items-center justify-center border-r border-b border-border bg-secondary text-xs text-muted-foreground"
+          style={{ height: RULER_HEIGHT }}
+        >
+          Keys
+        </div>
+        <div className="min-w-0 overflow-hidden border-b border-border bg-secondary">
+          <canvas ref={rulerRef} aria-hidden="true" className="block" />
+        </div>
+        <div className="min-h-0 overflow-hidden border-r border-border">
+          <PianoKeys highestPitch={highestPitch} height={height} />
+        </div>
+        <div
+          ref={editorRef}
+          role="group"
+          aria-label="Piano roll editor"
+          aria-describedby={instructionsId}
+          tabIndex={0}
+          onKeyDown={handleEditorKeyDown}
+          className="group relative min-h-0 min-w-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+        >
+          <ContextMenu>
+            <ContextMenuTrigger asChild>
+              <div
+                ref={surfaceRef}
+                className="absolute inset-0 touch-none select-none"
+                onClick={(event) => {
+                  handleCanvasClick(event);
+                  editorRef.current?.focus({ preventScroll: true });
+                }}
+                onContextMenuCapture={handleCanvasContextMenu}
+                onPointerDown={(event) => {
+                  handleCanvasPointerDown(event);
+                  editorRef.current?.focus({ preventScroll: true });
+                }}
+              >
+                <canvas
+                  ref={canvasRef}
+                  role="img"
+                  aria-label="Time grid preview"
+                  data-logical-width={width}
+                  data-logical-height={height}
+                  className="block bg-roll-background select-none"
+                />
+                {selectedNote && (
+                  <div
+                    ref={overlayRef}
+                    data-note-overlay
+                    tabIndex={0}
+                    role="group"
+                    aria-label={`Selected note: pitch ${selectedNote.pitch}, tick ${selectedNote.startTick}, duration ${selectedNote.durationTicks} ticks`}
+                    aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowLeft Shift+ArrowRight Delete"
+                    className="absolute outline-2 outline-offset-1 outline-transparent group-focus-within:outline-ring focus-visible:outline-ring"
+                  >
+                    <span className="sr-only">
+                      Use arrow keys to move this selection, Shift+Left or
+                      Shift+Right to resize it, or Delete to remove it.
+                    </span>
+                  </div>
+                )}
+              </div>
+            </ContextMenuTrigger>
+            <NoteContextMenuContent
+              noteId={menuNoteId}
+              onSelectNote={(id) => selectNote(id)}
+              onDeleteNote={deleteNote}
+            />
+          </ContextMenu>
+          <p id={instructionsId} className="sr-only">
+            Ctrl or Command-click toggles a note. Ctrl or Command-drag empty
+            grid selects overlapping notes. Use the note-list buttons to toggle
+            selection with the keyboard, arrow keys to move selected notes,
+            Shift+Left or Shift+Right to resize them, and Delete to remove them.
+            Drag a note's right edge to resize the selection. Use the New note
+            pitch and Start tick fields followed by Add note to insert a note.
+          </p>
+          <NoteList notes={notes} onSelect={selectNote} />
+          <p role="status" aria-atomic="true" className="sr-only">
+            <span key={announcement.sequence}>{announcement.text}</span>
+          </p>
+        </div>
+        <StudioSidebar />
       </div>
-    </>
+      <footer className="flex flex-wrap gap-x-6 gap-y-1 border-t border-border bg-secondary px-4 py-2 text-xs text-muted-foreground">
+        <span>Click to draw. Drag a note to move it.</span>
+        <span>Shift-drag to pan. Ctrl-wheel to zoom.</span>
+        <span className="hidden lg:inline">
+          Ctrl / ⌘-drag empty grid to select notes.
+        </span>
+      </footer>
+    </section>
   );
 }

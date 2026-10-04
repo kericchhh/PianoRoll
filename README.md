@@ -4,6 +4,16 @@ Client-side MIDI note editor, built incrementally with React, TypeScript, Zustan
 Canvas 2D, use-gesture, and shadcn/ui with Radix primitives. Playback is the current
 learning milestone; MIDI I/O and persistence are later milestones.
 
+The workspace fills the browser viewport, with pitch-reference keys on the left,
+tools and note insertion across the top, playback at the upper right, and a
+blank panel reserved beside the grid. Canvas dimensions follow the available
+panel size; pitch rows stay 20 CSS pixels high. Below 1024 pixels wide, the right
+panel hides and playback moves below the tools to give the grid more room.
+Unfinished history, MIDI, save, transport, tempo, and Mix / FX controls are
+represented by empty, static placeholders without labels or mock controls.
+The keys are visual pitch references;
+they do not audition notes yet.
+
 ## Development
 
 ```sh
@@ -23,8 +33,10 @@ Movement reveals the selection without changing the stored MIDI coordinates.
 
 Shared controls live in `src/shared/components/ui/`; `components.json` directs
 the shadcn CLI to that folder. Sonner notifications use one app-level Toaster.
-The default theme uses near-black surfaces, peach primary actions, and blush
-focus indicators. CSS tokens live in `src/styles/index.css`; canvas colors live
+The minimal brutalist theme uses square controls, locally bundled Barlow type,
+black/graphite surfaces, peach primary actions, and pink focus indicators.
+The [studio palette](docs/palette.md) documents colors and measured contrast.
+CSS tokens live in `src/styles/index.css`; canvas colors live
 in `rendering/colors.ts`. Selected notes also have an inset outline so selection
 does not rely on color alone.
 Play shows a loading toast until `PlaybackControls.samplesReady` is true; changing

@@ -30,14 +30,50 @@ async function readNotes(page: Page) {
   });
 }
 async function position(page: Page, x: number, y: number) {
-  const bounds = await page
+  return page.getByRole('img', { name: 'Time grid preview' }).evaluate(
+    (element, point) => {
+      const canvas = element as HTMLCanvasElement;
+      const bounds = canvas.getBoundingClientRect();
+      return {
+        x:
+          bounds.x +
+          canvas.clientLeft +
+          (point.x * canvas.clientWidth) / Number(canvas.dataset.logicalWidth),
+        y:
+          bounds.y +
+          canvas.clientTop +
+          (point.y * canvas.clientHeight) /
+            Number(canvas.dataset.logicalHeight),
+      };
+    },
+    { x, y },
+  );
+}
+async function viewportSize(page: Page) {
+  return page
     .getByRole('img', { name: 'Time grid preview' })
-    .boundingBox();
-  if (!bounds) throw new Error('Canvas is not visible');
-  return {
-    x: bounds.x + 1 + (x * (bounds.width - 2)) / 600,
-    y: bounds.y + 1 + (y * (bounds.height - 2)) / 240,
-  };
+    .evaluate((canvas) => ({
+      width: Number((canvas as HTMLCanvasElement).dataset.logicalWidth),
+      height: Number((canvas as HTMLCanvasElement).dataset.logicalHeight),
+    }));
+}
+async function waitForCanvasSize(page: Page) {
+  await expect
+    .poll(() =>
+      page
+        .getByRole('img', { name: 'Time grid preview' })
+        .evaluate((element) => {
+          const canvas = element as HTMLCanvasElement;
+          const panel = canvas.parentElement?.getBoundingClientRect();
+          return (
+            Number(canvas.dataset.logicalWidth) ===
+              Math.floor(panel?.width ?? 0) &&
+            Number(canvas.dataset.logicalHeight) ===
+              Math.floor(panel?.height ?? 0)
+          );
+        }),
+    )
+    .toBe(true);
 }
 async function move(page: Page, x: number, y: number) {
   const point = await position(page, x, y);
@@ -45,16 +81,16 @@ async function move(page: Page, x: number, y: number) {
 }
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
+  await waitForCanvasSize(page);
 });
 
 test('keyboard-only insertion, movement, reveal and deletion', async ({
   page,
 }) => {
-  await page.keyboard.press('Tab'); // play
-  await expect(
-    page.getByRole('button', { name: 'Play', exact: true }),
-  ).toBeFocused();
   await page.keyboard.press('Tab'); // timeline
+  await expect(
+    page.getByRole('combobox', { name: 'Timeline length' }),
+  ).toBeFocused();
   await page.keyboard.press('Tab'); // pitch
   await page.keyboard.press('Tab'); // tick
   await page.keyboard.press('Tab'); // add
@@ -66,7 +102,7 @@ test('keyboard-only insertion, movement, reveal and deletion', async ({
   await page.keyboard.press('ArrowUp');
   const overlay = page.getByRole('group', { name: /Selected note: pitch 73/ });
   await expect(overlay).toBeVisible();
-  await expect(overlay).toHaveCSS('top', '1px');
+  await expect(overlay).toHaveCSS('top', '0px');
   await page.keyboard.press('Delete');
   expect(await readNotes(page)).toEqual({});
 });
@@ -154,7 +190,7 @@ test('scaled and zoomed right-edge resizing keeps pointer capture outside the ca
     (canvas as HTMLElement).style.height = '120px';
   });
   await seed(page, [base]);
-  await move(page, 110, 10); // Five CSS pixels inside the endpoint.
+  await move(page, 110, 10); // Inside the six-CSS-pixel endpoint target.
   await page.mouse.down();
   await move(page, 170, 30);
   await page.mouse.up();
@@ -194,11 +230,12 @@ test('scaled and zoomed right-edge resizing keeps pointer capture outside the ca
 test('a viewport-clipped edge remains a move when the true endpoint is offscreen', async ({
   page,
 }) => {
-  const note = { ...base, durationTicks: 1088 }; // Endpoint x=604, outside width=600.
+  const { width } = await viewportSize(page);
+  const note = { ...base, durationTicks: (width + 4) / 0.5 - base.startTick };
   await seed(page, [note]);
-  await move(page, 599, 10); // Within six pixels of the true endpoint.
+  await move(page, width - 1, 10); // Within six pixels of the offscreen endpoint.
   await page.mouse.down();
-  await move(page, 659, 10);
+  await move(page, width + 59, 10);
   await page.mouse.up();
 
   await expect
@@ -234,15 +271,20 @@ test('pointer capture commits a note released outside the canvas and reveals it'
   page,
 }) => {
   await seed(page, [base]);
+  const { height } = await viewportSize(page);
+  const releaseY = height + 30;
+  const pitch = Math.max(0, base.pitch - Math.round((releaseY - 10) / 20));
   await move(page, 65, 10);
   await page.mouse.down();
-  await move(page, 125, 270);
+  await move(page, 125, releaseY);
   await page.mouse.up();
   await expect
     .poll(async () => (await readNotes(page)).a)
-    .toMatchObject({ startTick: 240, pitch: 59 });
+    .toMatchObject({ startTick: 240, pitch });
   await expect(
-    page.getByRole('group', { name: /Selected note: pitch 59/ }),
+    page.getByRole('group', {
+      name: new RegExp(`Selected note: pitch ${pitch},`),
+    }),
   ).toBeVisible();
 });
 
@@ -353,12 +395,13 @@ test('supported minimum zoom keeps narrow selections visible', async ({
   await page.mouse.wheel(0, 10000);
   await page.keyboard.up('Control');
   const overlay = page.getByRole('group', { name: /Selected note:/ });
+  const { width } = await viewportSize(page);
   await expect(overlay).toBeVisible();
   await expect
     .poll(() =>
       overlay.evaluate((element) => element.getBoundingClientRect().width),
     )
-    .toBeCloseTo((600 / (32 * 4 * 480)) * 120, 1);
+    .toBeCloseTo((width / (32 * 4 * 480)) * 120, 1);
 });
 
 test('timeline Select supports keyboard changes and returns focus without editing notes', async ({
@@ -406,6 +449,80 @@ test('loading feedback is announced without taking focus or stacking repeated Pl
   expect(await readNotes(page)).toEqual({});
 });
 
+test('workspace fills the viewport and keeps notes and keys aligned after resizing', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await waitForCanvasSize(page);
+  await seed(page, [base]);
+  const canvas = page.getByRole('img', { name: 'Time grid preview' });
+  const sidebar = page.locator('.studio-sidebar');
+  await expect(sidebar).toBeVisible();
+  await expect(page.getByRole('button', { name: /planned/i })).toHaveCount(0);
+  await expect(sidebar).toHaveText('');
+  const canvasBounds = await canvas.boundingBox();
+  const sidebarBounds = await sidebar.boundingBox();
+  const playbackBounds = await page
+    .getByRole('region', { name: 'Playback', exact: true })
+    .boundingBox();
+  if (!canvasBounds || !sidebarBounds || !playbackBounds)
+    throw new Error('Workspace is not visible');
+  expect(canvasBounds.height).toBeGreaterThan(900 * 0.7);
+  expect(sidebarBounds.x).toBeGreaterThanOrEqual(
+    canvasBounds.x + canvasBounds.width,
+  );
+  expect(playbackBounds.y).toBeLessThan(canvasBounds.y);
+  expect(playbackBounds.x).toBeGreaterThan(
+    canvasBounds.x + canvasBounds.width / 2,
+  );
+
+  const noteButton = page.getByRole('button', {
+    name: /Pitch 72, tick 120, duration 120 ticks/,
+  });
+  const dimensions = await viewportSize(page);
+  await noteButton.focus();
+  await expect(noteButton).toBeVisible();
+  expect(await viewportSize(page)).toEqual(dimensions);
+  await page
+    .getByRole('group', { name: 'Piano roll editor', exact: true })
+    .focus();
+  await page.keyboard.press('ArrowUp');
+  const overlay = page.getByRole('group', { name: /Selected note: pitch 73/ });
+  await expect(overlay).toHaveCSS('top', '0px');
+  const keyLabel = page.locator('.piano-key-label', { hasText: 'C5' });
+  const keyBounds = await keyLabel.locator('..').boundingBox();
+  if (!keyBounds) throw new Error('C5 reference key is not visible');
+  expect(keyBounds.y).toBeCloseTo(canvasBounds.y + 20, 0);
+
+  const notes = await readNotes(page);
+  await page.setViewportSize({ width: 900, height: 650 });
+  await waitForCanvasSize(page);
+  await expect(sidebar).toBeHidden();
+  await expect(overlay).toHaveCSS('height', '20px');
+  expect(await readNotes(page)).toEqual(notes);
+  expect(
+    await canvas.evaluate((element) => {
+      const canvas = element as HTMLCanvasElement;
+      return (
+        canvas.width === Math.round(canvas.clientWidth * devicePixelRatio) &&
+        canvas.height === Math.round(canvas.clientHeight * devicePixelRatio)
+      );
+    }),
+  ).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
+    900,
+  );
+  expect(
+    await page
+      .locator('[data-slot="skeleton"]')
+      .evaluateAll((elements) =>
+        elements.every(
+          (element) => getComputedStyle(element).animationName === 'none',
+        ),
+      ),
+  ).toBe(true);
+});
+
 test('measures real Canvas rendering for a 1000-note viewport', async ({
   page,
 }, testInfo) => {
@@ -431,7 +548,9 @@ test('measures real Canvas rendering for a 1000-note viewport', async ({
         },
       ]),
     );
-    const canvas = document.querySelector('canvas');
+    const canvas = document.querySelector<HTMLCanvasElement>(
+      'canvas[aria-label="Time grid preview"]',
+    );
     const context = canvas?.getContext('2d');
     if (!context) throw new Error('Canvas context unavailable');
     const scene = {

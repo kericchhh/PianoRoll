@@ -19,7 +19,7 @@ export function NoteInsertionForm({ endTick, onAdd }: Props) {
   return (
     <form
       aria-label="Add a note"
-      className="flex flex-wrap items-center gap-3 py-2"
+      className="note-insertion-form flex flex-wrap items-center gap-x-6 gap-y-2"
       onSubmit={(event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
@@ -34,7 +34,9 @@ export function NoteInsertionForm({ endTick, onAdd }: Props) {
       }}
     >
       <div className="flex items-center gap-2">
-        <Label htmlFor={pitchId}>New note pitch</Label>
+        <Label htmlFor={pitchId} className="text-xs text-muted-foreground">
+          New note pitch
+        </Label>
         <Input
           id={pitchId}
           className="w-20"
@@ -48,7 +50,9 @@ export function NoteInsertionForm({ endTick, onAdd }: Props) {
         />
       </div>
       <div className="flex items-center gap-2">
-        <Label htmlFor={tickId}>Start tick</Label>
+        <Label htmlFor={tickId} className="text-xs text-muted-foreground">
+          Start tick
+        </Label>
         <Input
           id={tickId}
           className="w-24"
@@ -61,7 +65,11 @@ export function NoteInsertionForm({ endTick, onAdd }: Props) {
           required
         />
       </div>
-      <Button type="submit" variant="outline" className="text-primary">
+      <Button
+        type="submit"
+        variant="outline"
+        className="border-primary text-primary"
+      >
         Add note
       </Button>
       {error && <p role="alert">{error}</p>}

@@ -8,9 +8,12 @@ import type { NoteIndex } from '@/features/piano-roll/utils/noteIndex';
 import { drawPianoRoll } from '@/features/piano-roll/rendering/drawPianoRoll';
 import { tickToPixel } from '@/features/piano-roll/utils/tickToPixel';
 import { pitchToPixel } from '@/features/piano-roll/utils/pitchtoPixel';
+import { drawTimeRuler } from '@/features/piano-roll/rendering/drawTimeRuler';
+import { RULER_HEIGHT } from '@/features/piano-roll/constants';
 
 type Options = {
   canvasRef: RefObject<HTMLCanvasElement | null>;
+  rulerRef?: RefObject<HTMLCanvasElement | null>;
   overlayRef: RefObject<HTMLDivElement | null>;
   activeNoteRef: RefObject<string | null>;
   previewRef: RefObject<Record<string, Note> | null>;
@@ -26,8 +29,11 @@ export function useCanvasRenderer(options: Options) {
   const frameRef = useRef<number | null>(null);
   const drawRef = useRef<(() => void) | null>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
+  const rulerContextRef = useRef<CanvasRenderingContext2D | null>(null);
+  const rulerViewRef = useRef<string | null>(null);
   const {
     canvasRef,
+    rulerRef,
     overlayRef,
     activeNoteRef,
     previewRef,
@@ -51,6 +57,8 @@ export function useCanvasRenderer(options: Options) {
     if (!canvas) return;
     const context = canvas.getContext('2d');
     contextRef.current = context;
+    const rulerContext = rulerRef?.current?.getContext('2d') ?? null;
+    rulerContextRef.current = rulerContext;
     const sizeCanvas = () => {
       const ratio = window.devicePixelRatio || 1;
       const pixelWidth = Math.round(width * ratio),
@@ -60,6 +68,15 @@ export function useCanvasRenderer(options: Options) {
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       context?.setTransform(ratio, 0, 0, ratio, 0, 0);
+      if (rulerRef && rulerRef.current) {
+        const ruler = rulerRef.current;
+        ruler.width = pixelWidth;
+        ruler.height = Math.round(RULER_HEIGHT * ratio);
+        ruler.style.width = `${width}px`;
+        ruler.style.height = `${RULER_HEIGHT}px`;
+        rulerContext?.setTransform(ratio, 0, 0, ratio, 0, 0);
+        rulerViewRef.current = null;
+      }
       requestRedraw();
     };
     sizeCanvas();
@@ -70,13 +87,26 @@ export function useCanvasRenderer(options: Options) {
       frameRef.current = null;
       drawRef.current = null;
       contextRef.current = null;
+      rulerContextRef.current = null;
+      rulerViewRef.current = null;
     };
-  }, [canvasRef, height, requestRedraw, width]);
+  }, [canvasRef, rulerRef, height, requestRedraw, width]);
 
   useEffect(() => {
     const draw = () => {
       const view = getView();
       const previews = previewRef.current;
+      const rulerView = `${view.pixelsPerTick}:${view.scrollOffsetX}:${width}:${endTick}`;
+      if (rulerContextRef.current && rulerViewRef.current !== rulerView) {
+        drawTimeRuler(
+          rulerContextRef.current,
+          width,
+          RULER_HEIGHT,
+          view,
+          endTick,
+        );
+        rulerViewRef.current = rulerView;
+      }
       if (contextRef.current)
         drawPianoRoll(contextRef.current, {
           index,

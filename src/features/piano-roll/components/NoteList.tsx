@@ -32,7 +32,10 @@ const NoteListItem = memo(function NoteListItem({
 
 export const NoteList = memo(function NoteList({ notes, onSelect }: Props) {
   return (
-    <ul aria-label="Notes" className="sr-only focus-within:not-sr-only">
+    <ul
+      aria-label="Notes"
+      className="note-list sr-only focus-within:not-sr-only"
+    >
       {Object.values(notes).map((note) => (
         <NoteListItem key={note.id} note={note} onSelect={onSelect} />
       ))}
