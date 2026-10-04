@@ -1,4 +1,5 @@
 import type { MarqueeRect } from '../types';
+import { PIANO_ROLL_COLORS } from './colors';
 
 export function drawMarquee(
   context: CanvasRenderingContext2D,
@@ -11,8 +12,8 @@ export function drawMarquee(
   if (width === 0 || height === 0) return;
 
   context.save();
-  context.fillStyle = 'rgba(37, 99, 235, 0.12)';
-  context.strokeStyle = '#2563eb';
+  context.fillStyle = PIANO_ROLL_COLORS.marqueeFill;
+  context.strokeStyle = PIANO_ROLL_COLORS.marqueeOutline;
   context.lineWidth = 1;
   context.fillRect(x, y, width, height);
   context.strokeRect(x, y, width, height);

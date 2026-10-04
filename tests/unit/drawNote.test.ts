@@ -1,5 +1,6 @@
 import { expect, test, vi } from 'vitest';
 import { drawNote } from '@/features/piano-roll/rendering/drawNote';
+import { PIANO_ROLL_COLORS } from '@/features/piano-roll/rendering/colors';
 
 function makeContext() {
   const fillRect = vi.fn();
@@ -31,7 +32,7 @@ test('draws a selected note with a visible outline', () => {
 
   expect(fillRect).toHaveBeenCalledWith(60, 20, 60, 20);
   expect(strokeRect).toHaveBeenCalledWith(61, 21, 58, 18);
-  expect(context.strokeStyle).toBe('#ffffff');
+  expect(context.strokeStyle).toBe(PIANO_ROLL_COLORS.selectedOutline);
 });
 
 test('does not outline an unselected note', () => {
@@ -45,16 +46,16 @@ test('does not outline an unselected note', () => {
   expect(strokeRect).not.toHaveBeenCalled();
 });
 
-test('draws an unselected origin ghost in gray', () => {
+test('draws an unselected origin ghost with its supplied color', () => {
   const { context, fillRect, strokeRect } = makeContext();
   drawNote(
     context,
     { pitch: 71, startTick: 120, durationTicks: 120, selected: false },
     view,
-    '#94a3b8',
+    PIANO_ROLL_COLORS.ghost,
   );
 
-  expect(context.fillStyle).toBe('#94a3b8');
+  expect(context.fillStyle).toBe(PIANO_ROLL_COLORS.ghost);
   expect(fillRect).toHaveBeenCalledWith(60, 20, 60, 20);
   expect(strokeRect).not.toHaveBeenCalled();
 });

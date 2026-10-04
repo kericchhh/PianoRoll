@@ -1,1 +1,95 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-roll-background: var(--roll-background);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  color-scheme: dark;
+  --radius: 0.5rem;
+  /* Obsidian, charcoal, warm white, peach, blush, and muted mauve. */
+  --background: #080809;
+  --foreground: #f8f0f3;
+  --popover: #1b161c;
+  --popover-foreground: var(--foreground);
+  --primary: #ffc4a3;
+  --primary-foreground: #21181e;
+  --secondary: #211b22;
+  --secondary-foreground: var(--foreground);
+  --muted: #1c171d;
+  --muted-foreground: #b4a3ad;
+  --accent: #302129;
+  --accent-foreground: #ffd7e8;
+  --destructive: #f392a5;
+  --destructive-foreground: var(--primary-foreground);
+  --border: #3d313c;
+  --input: #83707d;
+  --ring: #f0a8c8;
+  --roll-background: #100d10;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply min-h-screen bg-background text-foreground antialiased;
+  }
+  ::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+}
+
+[data-slot='button']:focus-visible,
+[data-slot='input']:focus-visible,
+[data-slot='select-trigger']:focus-visible,
+[data-sonner-toast]:focus-visible,
+[data-sonner-toast] [data-close-button]:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+[data-slot='select-item']:focus-visible,
+[data-slot='context-menu-item']:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='button'],
+  [data-slot='input'],
+  [data-slot='select-trigger'],
+  [data-slot='select-content'],
+  [data-slot='context-menu-content'],
+  [data-slot='context-menu-sub-content'],
+  [data-sonner-toast],
+  [data-sonner-toaster] {
+    animation: none !important;
+    transition: none !important;
+  }
+}

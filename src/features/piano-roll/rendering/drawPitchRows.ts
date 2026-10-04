@@ -12,6 +12,7 @@ export function drawPitchRows(
     context.lineTo(width, y);
   }
 
-  context.strokeStyle = '#64748b';
+  context.strokeStyle = PIANO_ROLL_COLORS.pitchGrid;
   context.stroke();
 }
+import { PIANO_ROLL_COLORS } from './colors';

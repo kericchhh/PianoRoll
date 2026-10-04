@@ -1,7 +1,8 @@
 # Piano Roll
 
 Client-side MIDI note editor, built incrementally with React, TypeScript, Zustand,
-Canvas 2D, use-gesture, and Radix UI. Playback, MIDI I/O, and persistence are later milestones.
+Canvas 2D, use-gesture, and shadcn/ui with Radix primitives. Playback is the current
+learning milestone; MIDI I/O and persistence are later milestones.
 
 ## Development
 
@@ -19,6 +20,16 @@ selection by a shared tick delta. Notes have a minimum duration of 120 ticks.
 Notes extending past a shortened timeline may be shortened but cannot be
 extended further; resizing does not force them inside the timeline.
 Movement reveals the selection without changing the stored MIDI coordinates.
+
+Shared controls live in `src/shared/components/ui/`; `components.json` directs
+the shadcn CLI to that folder. Sonner notifications use one app-level Toaster.
+The default theme uses near-black surfaces, peach primary actions, and blush
+focus indicators. CSS tokens live in `src/styles/index.css`; canvas colors live
+in `rendering/colors.ts`. Selected notes also have an inset outline so selection
+does not rely on color alone.
+Play shows a loading toast until `PlaybackControls.samplesReady` is true; changing
+it to true shows "Piano ready". The sampler and scheduling are still to be wired
+up: the current ready handler only unlocks Tone's audio context.
 
 ## Verification
 

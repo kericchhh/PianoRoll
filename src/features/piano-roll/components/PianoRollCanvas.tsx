@@ -15,7 +15,18 @@ import type {
   MarqueeRect,
   NoteRegion,
 } from '@/features/piano-roll/types';
-import * as ContextMenu from '@radix-ui/react-context-menu';
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+} from '@/shared/components/ui/context-menu';
+import { Label } from '@/shared/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/components/ui/select';
 import { NoteContextMenuContent } from '@/features/piano-roll/components/NoteContextMenuContent';
 import { useNoteInteractions } from '@/features/piano-roll/hooks/useNoteInteractions';
 import { useZoomPan } from '@/features/piano-roll/hooks/useZoomPan';
@@ -51,6 +62,7 @@ export function PianoRollCanvas() {
   const previewRef = useRef<Record<string, Note> | null>(null);
   const marqueeRef = useRef<MarqueeRect | null>(null);
   const instructionsId = useId();
+  const timelineId = useId();
   const [barCount, setBarCount] = useState(INITIAL_BAR_COUNT);
   const endTick = barCount * BEATS_PER_BAR * PPQ;
   const width = VIEWPORT_WIDTH;
@@ -154,20 +166,24 @@ export function PianoRollCanvas() {
 
   return (
     <>
-      <label>
-        Timeline length
-        <select
-          value={barCount}
-          onChange={(event) => setBarCount(Number(event.target.value))}
-          className="ml-2 border focus-visible:outline-2"
+      <div className="flex items-center gap-3">
+        <Label htmlFor={timelineId}>Timeline length</Label>
+        <Select
+          value={String(barCount)}
+          onValueChange={(value) => setBarCount(Number(value))}
         >
-          {BAR_COUNTS.map((bars) => (
-            <option key={bars} value={bars}>
-              {bars} bars
-            </option>
-          ))}
-        </select>
-      </label>
+          <SelectTrigger id={timelineId} className="w-28">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {BAR_COUNTS.map((bars) => (
+              <SelectItem key={bars} value={String(bars)}>
+                {bars} bars
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <NoteInsertionForm endTick={endTick} onAdd={addNote} />
       <div
         ref={editorRef}
@@ -176,10 +192,10 @@ export function PianoRollCanvas() {
         aria-describedby={instructionsId}
         tabIndex={0}
         onKeyDown={handleEditorKeyDown}
-        className="group focus-visible:outline-2 focus-visible:outline-blue-700"
+        className="group focus-visible:outline-2 focus-visible:outline-ring"
       >
-        <ContextMenu.Root>
-          <ContextMenu.Trigger asChild>
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
             <div
               ref={surfaceRef}
               className="relative w-fit touch-none select-none"
@@ -197,7 +213,7 @@ export function PianoRollCanvas() {
                 ref={canvasRef}
                 role="img"
                 aria-label="Time grid preview"
-                className="block border border-slate-600 select-none"
+                className="block border border-border bg-roll-background select-none"
               />
               {selectedNote && (
                 <div
@@ -207,7 +223,7 @@ export function PianoRollCanvas() {
                   role="group"
                   aria-label={`Selected note: pitch ${selectedNote.pitch}, tick ${selectedNote.startTick}, duration ${selectedNote.durationTicks} ticks`}
                   aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowLeft Shift+ArrowRight Delete"
-                  className="absolute outline-2 outline-offset-1 outline-transparent group-focus-within:outline-blue-950 focus-visible:outline-blue-950"
+                  className="absolute outline-2 outline-offset-1 outline-transparent group-focus-within:outline-ring focus-visible:outline-ring"
                 >
                   <span className="sr-only">
                     Use arrow keys to move this selection, Shift+Left or
@@ -216,13 +232,13 @@ export function PianoRollCanvas() {
                 </div>
               )}
             </div>
-          </ContextMenu.Trigger>
+          </ContextMenuTrigger>
           <NoteContextMenuContent
             noteId={menuNoteId}
             onSelectNote={(id) => selectNote(id)}
             onDeleteNote={deleteNote}
           />
-        </ContextMenu.Root>
+        </ContextMenu>
         <p id={instructionsId} className="sr-only">
           Ctrl or Command-click toggles a note. Ctrl or Command-drag empty grid
           selects overlapping notes. Use the note-list buttons to toggle

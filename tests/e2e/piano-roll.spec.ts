@@ -50,6 +50,10 @@ test.beforeEach(async ({ page }) => {
 test('keyboard-only insertion, movement, reveal and deletion', async ({
   page,
 }) => {
+  await page.keyboard.press('Tab'); // play
+  await expect(
+    page.getByRole('button', { name: 'Play', exact: true }),
+  ).toBeFocused();
   await page.keyboard.press('Tab'); // timeline
   await page.keyboard.press('Tab'); // pitch
   await page.keyboard.press('Tab'); // tick
@@ -342,9 +346,8 @@ test('supported minimum zoom keeps narrow selections visible', async ({
   page,
 }) => {
   await seed(page, [base]);
-  await page
-    .getByRole('combobox', { name: 'Timeline length' })
-    .selectOption('32');
+  await page.getByRole('combobox', { name: 'Timeline length' }).click();
+  await page.getByRole('option', { name: '32 bars' }).click();
   await move(page, 65, 10);
   await page.keyboard.down('Control');
   await page.mouse.wheel(0, 10000);
@@ -356,6 +359,51 @@ test('supported minimum zoom keeps narrow selections visible', async ({
       overlay.evaluate((element) => element.getBoundingClientRect().width),
     )
     .toBeCloseTo((600 / (32 * 4 * 480)) * 120, 1);
+});
+
+test('timeline Select supports keyboard changes and returns focus without editing notes', async ({
+  page,
+}) => {
+  await seed(page, [base]);
+  const select = page.getByRole('combobox', { name: 'Timeline length' });
+  await select.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('listbox')).toBeVisible();
+  await expect(page.getByRole('option', { name: '8 bars' })).toBeFocused();
+  await page.keyboard.press('End');
+  await expect(page.getByRole('option', { name: '32 bars' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(select).toHaveText('32 bars');
+  await expect(select).toBeFocused();
+  await expect(
+    page.getByRole('spinbutton', { name: 'Start tick' }),
+  ).toHaveAttribute('max', '61320');
+  expect(await readNotes(page)).toEqual({ a: base });
+});
+
+test('loading feedback is announced without taking focus or stacking repeated Play clicks', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const play = page.getByRole('button', { name: 'Play', exact: true });
+  await expect(page.getByText('Loading piano samples…')).toHaveCount(0);
+  await play.focus();
+  await page.keyboard.press('Enter');
+  const notification = page.getByText('Loading piano samples…');
+  await expect(notification).toBeVisible();
+  await expect(play).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(notification).toHaveCount(1);
+  await expect(
+    page.getByRole('region', { name: /Notifications/ }),
+  ).toHaveAttribute('aria-live', 'polite');
+  await expect(page.locator('[data-sonner-toast]')).toHaveCSS(
+    'transition-duration',
+    '0s',
+  );
+  await page.getByRole('button', { name: 'Close toast' }).click();
+  await expect(notification).toHaveCount(0);
+  expect(await readNotes(page)).toEqual({});
 });
 
 test('measures real Canvas rendering for a 1000-note viewport', async ({

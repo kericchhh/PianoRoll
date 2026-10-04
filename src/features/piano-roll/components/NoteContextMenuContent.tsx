@@ -1,38 +1,38 @@
-import * as ContextMenu from "@radix-ui/react-context-menu";
+import {
+  ContextMenuContent,
+  ContextMenuItem,
+} from '@/shared/components/ui/context-menu';
 
 type NoteContextMenuContentProps = {
-    noteId: string | null;
-    onSelectNote: (id: string) => void;
-    onDeleteNote: (id: string) => void;
+  noteId: string | null;
+  onSelectNote: (id: string) => void;
+  onDeleteNote: (id: string) => void;
 };
 
 export function NoteContextMenuContent({
-    noteId,
-    onSelectNote,
-    onDeleteNote,
+  noteId,
+  onSelectNote,
+  onDeleteNote,
 }: NoteContextMenuContentProps) {
-    return (
-        <ContextMenu.Portal>
-            <ContextMenu.Content className="z-50 min-w-36 rounded border border-slate-500 bg-white p-1 text-slate-900 shadow-lg">
-                <ContextMenu.Item
-                    disabled={noteId === null}
-                    onSelect={() => {
-                        if (noteId !== null) onSelectNote(noteId);
-                    }}
-                    className="cursor-default rounded px-3 py-1.5 outline-none data-highlighted:bg-blue-700 data-highlighted:text-white data-disabled:opacity-50"
-                >
-                    Select note
-                </ContextMenu.Item>
-                <ContextMenu.Item
-                    disabled={noteId === null}
-                    onSelect={() => {
-                        if (noteId !== null) onDeleteNote(noteId);
-                    }}
-                    className="cursor-default rounded px-3 py-1.5 outline-none data-highlighted:bg-blue-700 data-highlighted:text-white data-disabled:opacity-50"
-                >
-                    Delete note
-                </ContextMenu.Item>
-            </ContextMenu.Content>
-        </ContextMenu.Portal>
-    );
+  return (
+    <ContextMenuContent className="min-w-36">
+      <ContextMenuItem
+        disabled={noteId === null}
+        onSelect={() => {
+          if (noteId !== null) onSelectNote(noteId);
+        }}
+      >
+        Select note
+      </ContextMenuItem>
+      <ContextMenuItem
+        variant="destructive"
+        disabled={noteId === null}
+        onSelect={() => {
+          if (noteId !== null) onDeleteNote(noteId);
+        }}
+      >
+        Delete note
+      </ContextMenuItem>
+    </ContextMenuContent>
+  );
 }

@@ -4,6 +4,7 @@ import { drawTimeGrid } from './drawTimeGrid';
 import { drawPitchRows } from './drawPitchRows';
 import { drawNote } from './drawNote';
 import { drawMarquee } from './drawMarquee';
+import { PIANO_ROLL_COLORS } from './colors';
 
 type Scene = {
   index: NoteIndex;
@@ -53,7 +54,12 @@ export function drawPianoRoll(context: CanvasRenderingContext2D, scene: Scene) {
     for (const [id, preview] of Object.entries(previews)) {
       const origin = index.notes[id];
       if (origin && visible(origin))
-        drawNote(context, { ...origin, selected: false }, view, '#94a3b8');
+        drawNote(
+          context,
+          { ...origin, selected: false },
+          view,
+          PIANO_ROLL_COLORS.ghost,
+        );
       if (origin && visible(preview)) displayed.set(id, preview);
       else displayed.delete(id);
     }

@@ -41,7 +41,7 @@ A browser-based piano-roll MIDI composer (like a mini Ableton/Logic note editor)
 | Canvas rendering | Hand-rolled Canvas 2D (no scene-graph library — this is the point) |
 | Local persistence | Dexie.js (IndexedDB wrapper) |
 | UI chrome animation (toolbar/panels only, never the note grid) | Framer Motion |
-| Accessible primitives (menus, sliders, dialogs) | Radix UI or React Aria |
+| Accessible primitives (menus, sliders, dialogs) | shadcn/ui with Radix UI; Sonner for toasts |
 | Icons | lucide-react |
 | Styling | Tailwind CSS |
 | Optional hardware input | Web MIDI API (native, no library) |
@@ -202,3 +202,7 @@ When a task surfaces a genuine unresolved design choice (e.g., exact PPQ resolut
 
 - Confirmed: the user selects the timeline length from 4, 8, 16, or 32 bars. Scroll and drawing bounds follow the selected length. Minimum zoom fits the selected timeline to the viewport; displayed grid subdivisions adapt to zoom while pitch-row height stays fixed. Still to decide: initial length, time signature and PPQ, and how shortening the timeline handles existing notes beyond the new endpoint.
 - Confirmed: right-edge dragging and Shift+Left/Right resize the selected notes by a shared tick delta, with a 120-tick minimum duration. Notes already extending past a shortened timeline can be shortened without forced truncation, but cannot be extended further. The pointer target is the final 6 CSS pixels of the note, capped at half its width, and requires the actual endpoint to be visible. Pointer resizing snaps the dragged note's endpoint; previews stay in refs and the group commits once on release.
+- Confirmed: the initial playback instrument uses recorded piano samples with `Tone.Sampler`. Still to decide: the sample set and whether sample files are bundled with the app or loaded from an external host.
+- Confirmed: piano samples load in the background. Play stays clickable; pressing it before readiness shows a loading toast without starting playback. Actual sample readiness shows a "Piano ready" toast, with no permanent status text. Audio context activation still happens from the user's Play action once samples are ready.
+- Confirmed: shared controls use shadcn/ui with Radix primitives, including the custom Select for timeline length, and Sonner for toast notifications. PlaybackControls receives a samplesReady prop; the sampler connection remains the next learning step.
+- Confirmed: the default visual theme is near-black with peach and pink accents. Controls, toasts, canvas notes, and focus indicators follow this palette; color choices are delegated to the agent for this theme request.

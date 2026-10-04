@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import { Button } from '@/shared/components/ui/button';
+import { Input } from '@/shared/components/ui/input';
+import { Label } from '@/shared/components/ui/label';
 import {
   DEFAULT_NOTE_DURATION_TICKS,
   INITIAL_HIGHEST_PITCH,
@@ -11,10 +14,12 @@ type Props = {
 };
 export function NoteInsertionForm({ endTick, onAdd }: Props) {
   const [error, setError] = useState('');
+  const pitchId = useId();
+  const tickId = useId();
   return (
     <form
       aria-label="Add a note"
-      className="flex flex-wrap gap-3 py-2"
+      className="flex flex-wrap items-center gap-3 py-2"
       onSubmit={(event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
@@ -28,10 +33,11 @@ export function NoteInsertionForm({ endTick, onAdd }: Props) {
         );
       }}
     >
-      <label>
-        New note pitch{' '}
-        <input
-          className="w-20 border focus-visible:outline-2"
+      <div className="flex items-center gap-2">
+        <Label htmlFor={pitchId}>New note pitch</Label>
+        <Input
+          id={pitchId}
+          className="w-20"
           name="pitch"
           type="number"
           min={0}
@@ -40,11 +46,12 @@ export function NoteInsertionForm({ endTick, onAdd }: Props) {
           defaultValue={INITIAL_HIGHEST_PITCH}
           required
         />
-      </label>
-      <label>
-        Start tick{' '}
-        <input
-          className="w-24 border focus-visible:outline-2"
+      </div>
+      <div className="flex items-center gap-2">
+        <Label htmlFor={tickId}>Start tick</Label>
+        <Input
+          id={tickId}
+          className="w-24"
           name="tick"
           type="number"
           min={0}
@@ -53,10 +60,10 @@ export function NoteInsertionForm({ endTick, onAdd }: Props) {
           defaultValue={0}
           required
         />
-      </label>
-      <button type="submit" className="border px-2 focus-visible:outline-2">
+      </div>
+      <Button type="submit" variant="outline" className="text-primary">
         Add note
-      </button>
+      </Button>
       {error && <p role="alert">{error}</p>}
     </form>
   );

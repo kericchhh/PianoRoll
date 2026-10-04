@@ -224,9 +224,9 @@ test('all origin ghosts are drawn beneath the moving notes when their positions 
   act(() => frame?.(0));
 
   expect(rectangles).toEqual([
-    ['#94a3b8', 60, 0],
-    ['#94a3b8', 120, 20],
-    ['#2563eb', 120, 20],
-    ['#2563eb', 180, 40],
+    ['#8a6a7b', 60, 0],
+    ['#8a6a7b', 120, 20],
+    ['#ffc4a3', 120, 20],
+    ['#ffc4a3', 180, 40],
   ]);
 });

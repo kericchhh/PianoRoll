@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { Button } from '@/shared/components/ui/button';
 import type { Note } from '@/features/piano-roll/types';
 
 type Props = {
@@ -14,16 +15,17 @@ const NoteListItem = memo(function NoteListItem({
 }) {
   return (
     <li>
-      <button
+      <Button
         type="button"
+        variant="ghost"
         aria-pressed={note.selected}
-        className="focus-visible:outline-2 focus-visible:outline-blue-700"
+        className="h-auto justify-start whitespace-normal text-left"
         onClick={() => onSelect(note.id, true)}
       >
         {note.selected ? 'Selected: ' : ''}
         Pitch {note.pitch}, tick {note.startTick}, duration {note.durationTicks}{' '}
         ticks
-      </button>
+      </Button>
     </li>
   );
 });

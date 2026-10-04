@@ -1,5 +1,6 @@
 import { expect, test, vi } from 'vitest';
 import { drawMarquee } from '@/features/piano-roll/rendering/drawMarquee';
+import { PIANO_ROLL_COLORS } from '@/features/piano-roll/rendering/colors';
 
 function makeContext() {
   return {
@@ -24,8 +25,8 @@ test('draws a reverse-drag rectangle with normalized dimensions and isolated sty
 
   expect(context.fillRect).toHaveBeenCalledWith(25, 5, 75, 60);
   expect(context.strokeRect).toHaveBeenCalledWith(25, 5, 75, 60);
-  expect(context.fillStyle).toBe('rgba(37, 99, 235, 0.12)');
-  expect(context.strokeStyle).toBe('#2563eb');
+  expect(context.fillStyle).toBe(PIANO_ROLL_COLORS.marqueeFill);
+  expect(context.strokeStyle).toBe(PIANO_ROLL_COLORS.marqueeOutline);
   expect(context.lineWidth).toBe(1);
   expect(context.save).toHaveBeenCalledOnce();
   expect(context.restore).toHaveBeenCalledOnce();
