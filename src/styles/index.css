@@ -4,157 +4,157 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
-  --font-sans: 'Barlow', sans-serif;
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-roll-background: var(--roll-background);
-  --radius-sm: var(--radius);
-  --radius-md: var(--radius);
-  --radius-lg: var(--radius);
-  --radius-xl: var(--radius);
+    --font-sans: 'Barlow', sans-serif;
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-roll-background: var(--roll-background);
+    --radius-sm: var(--radius);
+    --radius-md: var(--radius);
+    --radius-lg: var(--radius);
+    --radius-xl: var(--radius);
 }
 
 :root {
-  color-scheme: dark;
-  --radius: 0px;
-  --studio-black: #000000;
-  --studio-graphite: #171717;
-  --studio-panel: #242424;
-  --studio-bone: #f1eee7;
-  --studio-ash: #b5b1aa;
-  --studio-peach: #ffb18a;
-  --studio-pink: #e4a0bd;
-  --background: var(--studio-black);
-  --foreground: var(--studio-bone);
-  --popover: var(--studio-panel);
-  --popover-foreground: var(--foreground);
-  --primary: var(--studio-peach);
-  --primary-foreground: var(--studio-black);
-  --secondary: var(--studio-graphite);
-  --secondary-foreground: var(--foreground);
-  --muted: var(--studio-panel);
-  --muted-foreground: var(--studio-ash);
-  --accent: var(--studio-bone);
-  --accent-foreground: var(--studio-black);
-  --destructive: #ff8796;
-  --destructive-foreground: var(--primary-foreground);
-  --border: #4b4b49;
-  --input: #87847d;
-  --ring: var(--studio-pink);
-  --roll-background: #0b0b0b;
+    color-scheme: dark;
+    --radius: 0px;
+    --studio-black: #000000;
+    --studio-graphite: #171717;
+    --studio-panel: #242424;
+    --studio-bone: #f1eee7;
+    --studio-ash: #b5b1aa;
+    --studio-peach: #ffb18a;
+    --studio-pink: #e4a0bd;
+    --background: var(--studio-black);
+    --foreground: var(--studio-bone);
+    --popover: var(--studio-panel);
+    --popover-foreground: var(--foreground);
+    --primary: var(--studio-peach);
+    --primary-foreground: var(--studio-black);
+    --secondary: var(--studio-graphite);
+    --secondary-foreground: var(--foreground);
+    --muted: var(--studio-panel);
+    --muted-foreground: var(--studio-ash);
+    --accent: var(--studio-bone);
+    --accent-foreground: var(--studio-black);
+    --destructive: #ff8796;
+    --destructive-foreground: var(--primary-foreground);
+    --border: #4b4b49;
+    --input: #87847d;
+    --ring: var(--studio-pink);
+    --roll-background: #0b0b0b;
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply min-h-screen overflow-hidden bg-background font-sans text-foreground antialiased;
-  }
-  ::selection {
-    background: var(--primary);
-    color: var(--primary-foreground);
-  }
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply min-h-screen overflow-hidden bg-background font-sans text-foreground antialiased;
+    }
+    ::selection {
+        background: var(--primary);
+        color: var(--primary-foreground);
+    }
 }
 
 .editor-toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
 }
 
 .workspace-grid {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr) 224px;
-  grid-template-rows: 32px minmax(0, 1fr);
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) 224px;
+    grid-template-rows: 32px minmax(0, 1fr);
 }
 
 .studio-sidebar {
-  grid-column: 3;
-  grid-row: 1 / 3;
+    grid-column: 3;
+    grid-row: 1 / 3;
 }
 
 .piano-key {
-  position: relative;
-  background: var(--studio-bone);
-  border-bottom: 1px solid var(--studio-ash);
+    position: relative;
+    background: var(--studio-bone);
+    border-bottom: 1px solid var(--studio-ash);
 }
 
 .piano-key-black {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 65%;
-  background: var(--studio-graphite);
-  border-right: 1px solid var(--studio-black);
-  border-bottom: 1px solid var(--studio-black);
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 65%;
+    background: var(--studio-graphite);
+    border-right: 1px solid var(--studio-black);
+    border-bottom: 1px solid var(--studio-black);
 }
 
 .piano-key-label {
-  position: absolute;
-  right: 7px;
-  top: 2px;
-  color: var(--studio-black);
-  font-size: 11px;
-  font-weight: 700;
+    position: absolute;
+    right: 7px;
+    top: 2px;
+    color: var(--studio-black);
+    font-size: 11px;
+    font-weight: 700;
 }
 
 [data-slot='context-menu-content'],
 [data-slot='context-menu-sub-content'] {
-  border-width: 2px;
-  box-shadow: none;
-  animation: none;
+    border-width: 2px;
+    box-shadow: none;
+    animation: none;
 }
 
 [data-sonner-toast] {
-  font-family: var(--font-sans);
-  box-shadow: none;
+    font-family: var(--font-sans);
+    box-shadow: none;
 }
 
 .note-list:focus-within {
-  position: absolute;
-  inset: auto 12px 12px;
-  z-index: 20;
-  width: auto;
-  height: auto;
-  max-height: 40%;
-  overflow-y: auto;
-  padding: 8px;
-  border: 1px solid var(--input);
-  border-radius: var(--radius);
-  background: var(--popover);
-  white-space: normal;
+    position: absolute;
+    inset: auto 12px 12px;
+    z-index: 20;
+    width: auto;
+    height: auto;
+    max-height: 40%;
+    overflow-y: auto;
+    padding: 8px;
+    border: 1px solid var(--input);
+    border-radius: var(--radius);
+    background: var(--popover);
+    white-space: normal;
 }
 
 @media (max-width: 1023px) {
-  .editor-toolbar {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .editor-toolbar > section + section {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    border-top: 1px solid var(--border);
-  }
-  .workspace-grid {
-    grid-template-columns: 64px minmax(0, 1fr);
-  }
-  .studio-sidebar {
-    display: none;
-  }
+    .editor-toolbar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .editor-toolbar > section + section {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 1px solid var(--border);
+    }
+    .workspace-grid {
+        grid-template-columns: 64px minmax(0, 1fr);
+    }
+    .studio-sidebar {
+        display: none;
+    }
 }
 
 [data-slot='button']:focus-visible,
@@ -162,26 +162,26 @@
 [data-slot='select-trigger']:focus-visible,
 [data-sonner-toast]:focus-visible,
 [data-sonner-toast] [data-close-button]:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
 }
 
 [data-slot='select-item']:focus-visible,
 [data-slot='context-menu-item']:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: -2px;
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-slot='button'],
-  [data-slot='input'],
-  [data-slot='select-trigger'],
-  [data-slot='select-content'],
-  [data-slot='context-menu-content'],
-  [data-slot='context-menu-sub-content'],
-  [data-sonner-toast],
-  [data-sonner-toaster] {
-    animation: none !important;
-    transition: none !important;
-  }
+    [data-slot='button'],
+    [data-slot='input'],
+    [data-slot='select-trigger'],
+    [data-slot='select-content'],
+    [data-slot='context-menu-content'],
+    [data-slot='context-menu-sub-content'],
+    [data-sonner-toast],
+    [data-sonner-toaster] {
+        animation: none !important;
+        transition: none !important;
+    }
 }

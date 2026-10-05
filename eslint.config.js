@@ -6,22 +6,22 @@ import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
 
 export default tseslint.config(
-  { ignores: ['dist', 'coverage'] },
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [js.configs.recommended, ...tseslint.configs.recommended],
-    languageOptions: { globals: globals.browser },
-    plugins: {
-      'react-hooks': reactHooks,
-      'react-refresh': reactRefresh,
+    { ignores: ['dist', 'coverage'] },
+    {
+        files: ['**/*.{ts,tsx}'],
+        extends: [js.configs.recommended, ...tseslint.configs.recommended],
+        languageOptions: { globals: globals.browser },
+        plugins: {
+            'react-hooks': reactHooks,
+            'react-refresh': reactRefresh,
+        },
+        rules: {
+            ...reactHooks.configs.recommended.rules,
+            'react-refresh/only-export-components': [
+                'warn',
+                { allowConstantExport: true },
+            ],
+        },
     },
-    rules: {
-      ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
-    },
-  },
-  prettier,
+    prettier,
 );

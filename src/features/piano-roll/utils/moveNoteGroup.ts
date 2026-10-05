@@ -19,11 +19,17 @@ export function moveNoteGroup(
         highestPitch = Math.max(highestPitch, note.pitch);
     }
 
-    const boundedTickDelta = Math.max(-earliestStart, Math.min(Math.max(0, endTick - latestEnd), tickDelta));
-    const boundedPitchDelta = Math.max(-lowestPitch, Math.min(127 - highestPitch, pitchDelta));
+    const boundedTickDelta = Math.max(
+        -earliestStart,
+        Math.min(Math.max(0, endTick - latestEnd), tickDelta),
+    );
+    const boundedPitchDelta = Math.max(
+        -lowestPitch,
+        Math.min(127 - highestPitch, pitchDelta),
+    );
     if (boundedTickDelta === 0 && boundedPitchDelta === 0) return notes;
 
-    return notes.map(note => ({
+    return notes.map((note) => ({
         ...note,
         startTick: note.startTick + boundedTickDelta,
         pitch: note.pitch + boundedPitchDelta,

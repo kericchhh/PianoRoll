@@ -39,9 +39,22 @@ The [studio palette](docs/palette.md) documents colors and measured contrast.
 CSS tokens live in `src/styles/index.css`; canvas colors live
 in `rendering/colors.ts`. Selected notes also have an inset outline so selection
 does not rely on color alone.
-Play shows a loading toast until `PlaybackControls.samplesReady` is true; changing
-it to true shows "Piano ready". The sampler and scheduling are still to be wired
-up: the current ready handler only unlocks Tone's audio context.
+`usePianoSampler` creates a `Tone.Sampler` in an effect, keeps it in a ref, and
+disposes it on cleanup. Thirty Salamander Grand Piano MP3 samples are bundled
+in `public/audio/piano/` (about 2 MB), with attribution and the original README.
+They load in the background from the app's own origin. Play shows a loading toast
+until loading completes, then "Piano ready" appears. Loading failures give an
+error toast. Play unlocks Tone's audio context and schedules the current grid
+notes through `usePlayback` using Tone's Transport. The button switches its icon and accessible label
+between Play and Pause. Pausing releases active sampler voices; resuming keeps
+the same transport position and scheduled events, and reattacks notes still held
+at that position. Their original note-off events end the remaining duration.
+Overlapping notes of the same pitch release together at their latest endpoint;
+back-to-back notes release before the next attack. Playback finishes at the last
+note's endpoint, resets the button to Play, and clears its old events. Pressing
+Play again rebuilds the schedule from the current notes and starts at tick zero.
+An empty project stays ready to play. Unmount stops playback, clears the editor's
+event IDs and pending completion callback, and disposes the sampler.
 
 ## Verification
 
@@ -67,7 +80,10 @@ disabled, run `npm run prepare` separately. Hooks never stage the entire reposit
 
 - `components/`: editor shell, insertion form, accessible list and context menu.
 - `hooks/`: gesture routing, note actions/announcements, keyboard commands,
-  zoom/pan, and canvas lifecycle/scheduling.
+  zoom/pan, canvas lifecycle/scheduling, sampler lifecycle/readiness, and playback
+  scheduling, retriggers, and completion cleanup.
+- `audio/`: the piano sample mapping; audio files and credits are in
+  `public/audio/piano/`.
 - `rendering/`: Canvas drawing passes, including ghosts and marquee ordering.
 - `utils/`: coordinate conversion, snapping, viewport reveal and note queries.
 - `store/`: normalized note data and atomic group edits.

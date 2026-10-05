@@ -3,73 +3,73 @@ import { drawNote } from '@/features/piano-roll/rendering/drawNote';
 import { PIANO_ROLL_COLORS } from '@/features/piano-roll/rendering/colors';
 
 function makeContext() {
-  const fillRect = vi.fn();
-  const strokeRect = vi.fn();
-  const context = {
-    fillRect,
-    strokeRect,
-    fillStyle: '',
-    strokeStyle: '',
-    lineWidth: 0,
-  } as unknown as CanvasRenderingContext2D;
-  return { context, fillRect, strokeRect };
+    const fillRect = vi.fn();
+    const strokeRect = vi.fn();
+    const context = {
+        fillRect,
+        strokeRect,
+        fillStyle: '',
+        strokeStyle: '',
+        lineWidth: 0,
+    } as unknown as CanvasRenderingContext2D;
+    return { context, fillRect, strokeRect };
 }
 
 const view = {
-  pixelsPerTick: 0.5,
-  scrollOffsetX: 0,
-  highestVisiblePitch: 72,
-  rowHeight: 20,
+    pixelsPerTick: 0.5,
+    scrollOffsetX: 0,
+    highestVisiblePitch: 72,
+    rowHeight: 20,
 };
 
 test('draws a selected note with a visible outline', () => {
-  const { context, fillRect, strokeRect } = makeContext();
-  drawNote(
-    context,
-    { pitch: 71, startTick: 120, durationTicks: 120, selected: true },
-    view,
-  );
+    const { context, fillRect, strokeRect } = makeContext();
+    drawNote(
+        context,
+        { pitch: 71, startTick: 120, durationTicks: 120, selected: true },
+        view,
+    );
 
-  expect(fillRect).toHaveBeenCalledWith(60, 20, 60, 20);
-  expect(strokeRect).toHaveBeenCalledWith(61, 21, 58, 18);
-  expect(context.strokeStyle).toBe(PIANO_ROLL_COLORS.selectedOutline);
+    expect(fillRect).toHaveBeenCalledWith(60, 20, 60, 20);
+    expect(strokeRect).toHaveBeenCalledWith(61, 21, 58, 18);
+    expect(context.strokeStyle).toBe(PIANO_ROLL_COLORS.selectedOutline);
 });
 
 test('does not outline an unselected note', () => {
-  const { context, strokeRect } = makeContext();
-  drawNote(
-    context,
-    { pitch: 71, startTick: 120, durationTicks: 120, selected: false },
-    view,
-  );
+    const { context, strokeRect } = makeContext();
+    drawNote(
+        context,
+        { pitch: 71, startTick: 120, durationTicks: 120, selected: false },
+        view,
+    );
 
-  expect(strokeRect).not.toHaveBeenCalled();
+    expect(strokeRect).not.toHaveBeenCalled();
 });
 
 test('draws an unselected origin ghost with its supplied color', () => {
-  const { context, fillRect, strokeRect } = makeContext();
-  drawNote(
-    context,
-    { pitch: 71, startTick: 120, durationTicks: 120, selected: false },
-    view,
-    PIANO_ROLL_COLORS.ghost,
-  );
+    const { context, fillRect, strokeRect } = makeContext();
+    drawNote(
+        context,
+        { pitch: 71, startTick: 120, durationTicks: 120, selected: false },
+        view,
+        PIANO_ROLL_COLORS.ghost,
+    );
 
-  expect(context.fillStyle).toBe(PIANO_ROLL_COLORS.ghost);
-  expect(fillRect).toHaveBeenCalledWith(60, 20, 60, 20);
-  expect(strokeRect).not.toHaveBeenCalled();
+    expect(context.fillStyle).toBe(PIANO_ROLL_COLORS.ghost);
+    expect(fillRect).toHaveBeenCalledWith(60, 20, 60, 20);
+    expect(strokeRect).not.toHaveBeenCalled();
 });
 
 test('keeps a selected note outline inside its bounds at the 32-bar minimum zoom', () => {
-  const { context, strokeRect } = makeContext();
-  const scale = 600 / (32 * 4 * 480);
-  drawNote(
-    context,
-    { pitch: 72, startTick: 0, durationTicks: 120, selected: true },
-    { ...view, pixelsPerTick: scale },
-  );
-  const [x, , width] = strokeRect.mock.calls[0];
-  expect(width).toBeGreaterThan(0);
-  expect(x - context.lineWidth / 2).toBeCloseTo(0);
-  expect(x + width + context.lineWidth / 2).toBeCloseTo(120 * scale);
+    const { context, strokeRect } = makeContext();
+    const scale = 600 / (32 * 4 * 480);
+    drawNote(
+        context,
+        { pitch: 72, startTick: 0, durationTicks: 120, selected: true },
+        { ...view, pixelsPerTick: scale },
+    );
+    const [x, , width] = strokeRect.mock.calls[0];
+    expect(width).toBeGreaterThan(0);
+    expect(x - context.lineWidth / 2).toBeCloseTo(0);
+    expect(x + width + context.lineWidth / 2).toBeCloseTo(120 * scale);
 });

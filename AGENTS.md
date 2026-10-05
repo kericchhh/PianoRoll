@@ -9,12 +9,12 @@ This file is the operating manual for any AI agent (Claude Code, Cursor, Copilot
 This is the single most important section. Violating it defeats the purpose of the project.
 
 - **Do not write complete components, files, or features end-to-end.** The human is building this themselves to learn it and to be able to defend every line in an interview.
-- **Give snippets, not implementations.** A snippet is 5–25 lines that illustrates *one* API call, *one* algorithm shape, or *one* pattern — never a finished, drop-in file.
+- **Give snippets, not implementations.** A snippet is 5–25 lines that illustrates _one_ API call, _one_ algorithm shape, or _one_ pattern — never a finished, drop-in file.
 - **Point to exact APIs/docs** (`AudioContext.createBufferSource`, `Tone.Transport.scheduleRepeat`, etc.) rather than wrapping them for the human.
 - **If asked "how do I do X," answer with approach + a short illustrative snippet**, and explicitly say what's left for the human to wire up themselves.
 - **Flag accessibility and performance implications** of any suggestion, even if not asked — they're first-class requirements here, not an afterthought pass.
 - **Never fix bugs by rewriting the surrounding code.** Explain what's wrong and what the fix targets; let the human make the edit.
-- It is fine to write throwaway code to help the human *debug or verify* something (e.g., a one-off script to inspect a MIDI file's bytes) — that's tooling, not the product.
+- It is fine to write throwaway code to help the human _debug or verify_ something (e.g., a one-off script to inspect a MIDI file's bytes) — that's tooling, not the product.
 
 ---
 
@@ -23,6 +23,7 @@ This is the single most important section. Violating it defeats the purpose of t
 A browser-based piano-roll MIDI composer (like a mini Ableton/Logic note editor) — not a fixed-grid drum machine. Notes have pitch, start time, duration, and velocity on a scrollable/zoomable grid. Fully client-side: no backend, ever.
 
 **Non-goals (do not suggest adding these):**
+
 - No server, no auth, no database — IndexedDB is the only persistence layer.
 - No DAW-scope creep (no mixing console, no plugin/VST hosting, no multi-track audio recording).
 - No mobile-first redesign — desktop-first, responsive as a secondary concern, but keyboard/mouse precision is the primary interaction model.
@@ -31,49 +32,52 @@ A browser-based piano-roll MIDI composer (like a mini Ableton/Logic note editor)
 
 ## 2. Tech Stack (do not substitute without asking)
 
-| Purpose | Library |
-|---|---|
-| Framework | React + TypeScript (strict mode), Vite |
-| State + undo/redo | Zustand (command pattern, not snapshot-based history) |
-| Audio engine / scheduling | Tone.js |
-| MIDI encode/decode | `@tonejs/midi` |
-| Drag/gesture handling | `@use-gesture/react` |
-| Canvas rendering | Hand-rolled Canvas 2D (no scene-graph library — this is the point) |
-| Local persistence | Dexie.js (IndexedDB wrapper) |
-| UI chrome animation (toolbar/panels only, never the note grid) | Framer Motion |
-| Accessible primitives (menus, sliders, dialogs) | shadcn/ui with Radix UI; Sonner for toasts |
-| Icons | lucide-react |
-| Styling | Tailwind CSS |
-| Optional hardware input | Web MIDI API (native, no library) |
-| Testing | Vitest, React Testing Library, Playwright (e2e) |
-| Lint/format | ESLint, Prettier, `tsc --noEmit` in CI |
+| Purpose                                                        | Library                                                            |
+| -------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Framework                                                      | React + TypeScript (strict mode), Vite                             |
+| State + undo/redo                                              | Zustand (command pattern, not snapshot-based history)              |
+| Audio engine / scheduling                                      | Tone.js                                                            |
+| MIDI encode/decode                                             | `@tonejs/midi`                                                     |
+| Drag/gesture handling                                          | `@use-gesture/react`                                               |
+| Canvas rendering                                               | Hand-rolled Canvas 2D (no scene-graph library — this is the point) |
+| Local persistence                                              | Dexie.js (IndexedDB wrapper)                                       |
+| UI chrome animation (toolbar/panels only, never the note grid) | Framer Motion                                                      |
+| Accessible primitives (menus, sliders, dialogs)                | shadcn/ui with Radix UI; Sonner for toasts                         |
+| Icons                                                          | lucide-react                                                       |
+| Styling                                                        | Tailwind CSS                                                       |
+| Optional hardware input                                        | Web MIDI API (native, no library)                                  |
+| Testing                                                        | Vitest, React Testing Library, Playwright (e2e)                    |
+| Lint/format                                                    | ESLint, Prettier, `tsc --noEmit` in CI                             |
 
 ---
 
 ## 3. Architecture
 
 ### 3.1 Data layer
+
 Notes are normalized entities keyed by id, **not** nested arrays-of-objects-in-objects:
 
 ```ts
 interface Note {
-  id: string;
-  pitch: number;       // MIDI 0–127
-  startTick: number;    // tempo-independent time unit
-  durationTicks: number;
-  velocity: number;     // 0–127
-  selected: boolean;
+    id: string;
+    pitch: number; // MIDI 0–127
+    startTick: number; // tempo-independent time unit
+    durationTicks: number;
+    velocity: number; // 0–127
+    selected: boolean;
 }
 ```
 
 Time is stored in **ticks** (480 PPQ is a sane default), never seconds or pixels. Tempo changes must only affect the tick→second conversion function — never require touching note data.
 
 ### 3.2 Audio engine layer
+
 The core system-design fact to internalize: `setTimeout`/`requestAnimationFrame` are not sample-accurate and drift, especially in background tabs. The correct pattern is a **look-ahead scheduler** — a ~25ms interval that looks ~100ms ahead and schedules audio events against `AudioContext.currentTime` (the authoritative clock), not JS wall-clock time. Tone.js's `Transport` implements this; use it rather than hand-rolling unless the human specifically wants to build it from raw Web Audio to demonstrate understanding.
 
 Polyphony needs voice management — `Tone.PolySynth` or `Tone.Sampler`, not manual oscillator pooling, unless asked.
 
 ### 3.3 Rendering layer — the central architectural decision
+
 - **Canvas**: cheap at scale (1000+ notes), but invisible to assistive tech by default.
 - **DOM**: free accessibility and easy Framer Motion, but degrades past a few hundred notes.
 - **Chosen approach: hybrid.** Canvas for the note grid itself. A thin DOM overlay for only the currently selected/dragged note (native pointer capture + focus ring). A visually-hidden list synced to the note array, wrapped in an `aria-live="polite"` region, for screen reader users.
@@ -81,18 +85,21 @@ Polyphony needs voice management — `Tone.PolySynth` or `Tone.Sampler`, not man
 Do not suggest an all-canvas or all-DOM rewrite without flagging that it reopens this trade-off.
 
 ### 3.4 Coordinate system
+
 One pure function everything depends on:
 
 ```ts
-pixelX = tickToPixel(tick, pixelsPerTick, scrollOffsetX)
+pixelX = tickToPixel(tick, pixelsPerTick, scrollOffsetX);
 ```
 
 Zoom mutates `pixelsPerTick`. Pan mutates `scrollOffsetX`. Pitch→row is a fixed-height inverted mapping (higher pitch = higher on screen). Snapping rounds a dragged note's raw tick to the nearest grid subdivision **before** it's committed to the store, not after.
 
 ### 3.5 Interaction layer
+
 Draw, move, resize (drag right edge), marquee multi-select, delete, per-note velocity (secondary lane), zoom/pan — via `@use-gesture/react` for the pointer/touch/wheel abstraction. The music-specific math (snapping, tick conversion, hit-testing) is the human's to write.
 
 ### 3.6 Persistence + export
+
 IndexedDB (via Dexie) for project save/load. `.mid` export/import via `@tonejs/midi`, serialized to a `Blob` and downloaded — no server round-trip.
 
 ---
@@ -130,9 +137,9 @@ tests/
 
 ```ts
 type Command =
-  | { type: 'ADD_NOTE'; note: Note }
-  | { type: 'MOVE_NOTE'; id: string; from: Partial<Note>; to: Partial<Note> }
-  | { type: 'DELETE_NOTE'; note: Note };
+    | { type: 'ADD_NOTE'; note: Note }
+    | { type: 'MOVE_NOTE'; id: string; from: Partial<Note>; to: Partial<Note> }
+    | { type: 'DELETE_NOTE'; note: Note };
 ```
 
 - Derived data (e.g., "notes visible in the current viewport") is computed in a memoized selector, never stored redundantly in state.
@@ -163,6 +170,7 @@ type Command =
 
 - TypeScript strict mode, no `any`, no implicit `unknown` leaks into consumers.
 - Functional components + hooks only — no class components.
+- Use four spaces for indentation. Prettier enforces `tabWidth: 4` and `useTabs: false`.
 - Named exports for components (better refactor tooling / tree-shaking clarity) — default export only for pages/entry points.
 - One responsibility per file; canvas drawing logic lives separately from React component lifecycle glue.
 - Every non-trivial pure function (tick math, snapping, hit-testing, command reducers) gets a unit test — UI rendering itself doesn't need exhaustive tests, but logic does.
@@ -204,7 +212,11 @@ When a task surfaces a genuine unresolved design choice (e.g., exact PPQ resolut
 - Confirmed: right-edge dragging and Shift+Left/Right resize the selected notes by a shared tick delta, with a 120-tick minimum duration. Notes already extending past a shortened timeline can be shortened without forced truncation, but cannot be extended further. The pointer target is the final 6 CSS pixels of the note, capped at half its width, and requires the actual endpoint to be visible. Pointer resizing snaps the dragged note's endpoint; previews stay in refs and the group commits once on release.
 - Confirmed: the editor fills the viewport, with pitch-reference keys on the left, tools across the top, playback at the upper right, and a blank reserved sidebar on the right. Canvas dimensions follow the panel while pitch rows stay fixed. Unfinished areas use empty, static skeletons without labels or mock controls; these placeholders do not authorize implementing their features. The sidebar hides below 1024 pixels wide to preserve grid space.
 - Confirmed: UI styling follows a minimal brutalist direction with square edges, Barlow bundled locally, black/graphite surfaces, warm white text, peach actions, and pink notes/focus. See `docs/palette.md` for exact colors and contrast pairs.
-- Confirmed: the initial playback instrument uses recorded piano samples with `Tone.Sampler`. Still to decide: the sample set and whether sample files are bundled with the app or loaded from an external host.
+- Confirmed: the initial playback instrument uses recorded piano samples with `Tone.Sampler`. The user chose bundled Salamander Grand Piano samples from the Tone.js sampler example, with attribution. `usePianoSampler` holds the sampler in a ref, owns effect setup/cleanup, and ignores callbacks after cleanup.
 - Confirmed: piano samples load in the background. Play stays clickable; pressing it before readiness shows a loading toast without starting playback. Actual sample readiness shows a "Piano ready" toast, with no permanent status text. Audio context activation still happens from the user's Play action once samples are ready.
-- Confirmed: shared controls use shadcn/ui with Radix primitives, including the custom Select for timeline length, and Sonner for toast notifications. PlaybackControls receives a samplesReady prop; the sampler connection remains the next learning step.
+- Confirmed: shared controls use shadcn/ui with Radix primitives, including the custom Select for timeline length, and Sonner for toast notifications. PlaybackControls receives real samplesReady/samplesFailed/isPlaying props and calls usePlayback's togglePlayback callback after audio context activation. App wires the sampler, playback hook, and controls; the playback hook owns Transport scheduling and cleanup. Note data stays in ticks.
 - Confirmed: the default visual theme is near-black with peach and pink accents. Controls, toasts, canvas notes, and focus indicators follow this palette; color choices are delegated to the agent for this theme request.
+- Confirmed: the user chose pause/resume. The playback button switches between Play and Pause icons and accessible labels. Pausing/resuming retains the existing scheduled note events and transport position; resuming must not schedule duplicate events.
+- Confirmed: resume reattacks notes held at the paused position for their remaining time. Playback finishes at the latest note endpoint, returns the button to Play, and permits replay from tick zero. An empty project stays ready to play.
+- Confirmed: overlapping notes of the same pitch share a release at their latest endpoint. Back-to-back notes release before the next attack. Schedule attacks and releases separately so Sampler.releaseAll can release held voices on pause.
+- Implemented: playback captures the notes at a fresh start; resume retains that schedule and does not mix in edits made while paused. Completion waits for the audio clock to reach the endpoint; pause, replay, and unmount cancel or invalidate pending completion callbacks. A fresh start clears the editor's old event IDs. Unmount stops the transport and clears owned events; sampler disposal and callback identity guards prevent late callbacks from using a disposed sampler or an old playback session.

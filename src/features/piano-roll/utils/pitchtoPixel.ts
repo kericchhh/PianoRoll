@@ -1,7 +1,7 @@
 export function pitchToPixel(
     pitch: number,
     highestVisiblePitch: number,
-    rowHeight: number
+    rowHeight: number,
 ): number {
-    return (highestVisiblePitch - pitch) * rowHeight
-};
+    return (highestVisiblePitch - pitch) * rowHeight;
+}

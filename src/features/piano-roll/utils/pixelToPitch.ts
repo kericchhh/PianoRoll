@@ -1,7 +1,7 @@
 export function pixelToPitch(
     pixelY: number,
     highestVisiblePitch: number,
-    rowHeight: number
+    rowHeight: number,
 ): number {
-    return highestVisiblePitch - Math.floor(pixelY / rowHeight)
+    return highestVisiblePitch - Math.floor(pixelY / rowHeight);
 }
