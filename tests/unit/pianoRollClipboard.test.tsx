@@ -8,9 +8,9 @@ import {
     render,
     screen,
 } from '@testing-library/react';
-import { PianoRollCanvas } from '@/features/piano-roll/components/PianoRollCanvas';
+import { PianoRollEditor } from '@/features/piano-roll/components/editor/PianoRollEditor';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
-import { useNoteKeyboard } from '@/features/piano-roll/hooks/useNoteKeyboard';
+import { useNoteKeyboard } from '@/features/piano-roll/hooks/notes/useNoteKeyboard';
 import type { GestureMode, Note } from '@/features/piano-roll/types';
 
 const source: Note[] = [
@@ -71,7 +71,7 @@ afterEach(() => {
 test.each(['ctrlKey', 'metaKey'])(
     '%s copies and pastes a selected group with new identities in one update',
     (modifier) => {
-        render(<PianoRollCanvas />);
+        render(<PianoRollEditor />);
         editor().focus();
         const before = useNoteStore.getState().notes;
         shortcut('c', editor(), modifier);
@@ -111,7 +111,7 @@ test.each(['ctrlKey', 'metaKey'])(
 );
 
 test('repeated paste follows the current selection, including after keyboard movement', () => {
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     shortcut('c');
     shortcut('v');
     fireEvent.keyDown(editor(), { key: 'ArrowRight' });
@@ -121,7 +121,7 @@ test('repeated paste follows the current selection, including after keyboard mov
 });
 
 test('paste keeps its copied data after editing and deleting the source and advances after deleted pastes', () => {
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     shortcut('c');
     act(() => useNoteStore.getState().moveNote('a', 240, 71));
     fireEvent.keyDown(editor(), { key: 'Delete' });
@@ -143,7 +143,7 @@ test('paste keeps its copied data after editing and deleting the source and adva
 });
 
 test('copying no selection announces feedback and retains the previous clipboard', () => {
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     shortcut('c');
     act(() => useNoteStore.getState().selectNotes([]));
     shortcut('c');
@@ -153,7 +153,7 @@ test('copying no selection announces feedback and retains the previous clipboard
 });
 
 test('an empty clipboard is announced without changing the store', () => {
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     const before = useNoteStore.getState();
     shortcut('v');
     expect(screen.getByRole('status').textContent).toBe(
@@ -163,10 +163,10 @@ test('an empty clipboard is announced without changing the store', () => {
 });
 
 test('clipboard data stays inside the mounted editor', () => {
-    const first = render(<PianoRollCanvas />);
+    const first = render(<PianoRollEditor />);
     shortcut('c');
     first.unmount();
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     shortcut('v');
     expect(notes()).toHaveLength(2);
     expect(screen.getByRole('status').textContent).toBe(
@@ -175,7 +175,7 @@ test('clipboard data stays inside the mounted editor', () => {
 });
 
 test('a rejected paste preserves notes, selection, and copied data for a later valid paste', () => {
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     shortcut('c');
     act(() =>
         useNoteStore.getState().moveNotes([
@@ -196,7 +196,7 @@ test('a rejected paste preserves notes, selection, and copied data for a later v
 });
 
 test('copy/paste works from the accessible note list and retains its focus', () => {
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     const button = screen.getByRole('button', { name: /Pitch 72, tick 120,/ });
     button.focus();
     shortcut('c', button);
@@ -209,7 +209,7 @@ test('copy/paste works from the accessible note list and retains its focus', () 
 test.each(['input', 'textarea', 'select', 'editable', 'menu'])(
     'native clipboard shortcuts in %s are not intercepted',
     (kind) => {
-        render(<PianoRollCanvas />);
+        render(<PianoRollEditor />);
         shortcut('c');
         const target = document.createElement(
             ['editable', 'menu'].includes(kind) ? 'div' : kind,
@@ -227,7 +227,7 @@ test.each(['input', 'textarea', 'select', 'editable', 'menu'])(
 );
 
 test('handled, repeated and conflicting modifier shortcuts do not paste', () => {
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     shortcut('c');
     const before = useNoteStore.getState();
     for (const extra of [

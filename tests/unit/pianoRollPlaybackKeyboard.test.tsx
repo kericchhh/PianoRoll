@@ -11,10 +11,10 @@ import {
 import userEvent from '@testing-library/user-event';
 import * as Tone from 'tone';
 import { toast } from 'sonner';
-import { PianoRollCanvas } from '@/features/piano-roll/components/PianoRollCanvas';
-import { PlaybackControls } from '@/features/piano-roll/components/PlaybackControls';
-import { usePlaybackControls } from '@/features/piano-roll/hooks/usePlaybackControls';
-import { useNoteKeyboard } from '@/features/piano-roll/hooks/useNoteKeyboard';
+import { PianoRollEditor } from '@/features/piano-roll/components/editor/PianoRollEditor';
+import { PlaybackControls } from '@/features/piano-roll/components/playback/PlaybackControls';
+import { usePlaybackControls } from '@/features/piano-roll/hooks/playback/usePlaybackControls';
+import { useNoteKeyboard } from '@/features/piano-roll/hooks/notes/useNoteKeyboard';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 import type { GestureMode } from '@/features/piano-roll/types';
 
@@ -26,7 +26,7 @@ vi.mock('sonner', () => ({
 function Harness(props: Parameters<typeof usePlaybackControls>[0]) {
     const handlePlay = usePlaybackControls(props);
     return (
-        <PianoRollCanvas
+        <PianoRollEditor
             onTogglePlayback={handlePlay}
             playbackControls={
                 <PlaybackControls onPlay={handlePlay} isPlaying={false} />

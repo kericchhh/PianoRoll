@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { marqueeToRegion } from '@/features/piano-roll/utils/marqueeToRegion';
+import { marqueeToRegion } from '@/features/piano-roll/utils/coordinates/marqueeToRegion';
 import type { PianoRollView } from '@/features/piano-roll/types';
 
 const view: PianoRollView = {

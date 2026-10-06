@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import { clampScale } from '@/features/piano-roll/utils/clampScale';
-import { clampScroll } from '@/features/piano-roll/utils/clampScroll';
+import { clampScale } from '@/features/piano-roll/utils/viewport/clampScale';
+import { clampScroll } from '@/features/piano-roll/utils/viewport/clampScroll';
 
 test.each([4, 8, 16, 32])(
     'fits %s bars exactly at minimum zoom without blank space or scrolling',

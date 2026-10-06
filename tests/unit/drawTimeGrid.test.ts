@@ -1,8 +1,8 @@
 import { beforeEach, expect, test, vi } from 'vitest';
-import { drawTimeGrid } from '@/features/piano-roll/rendering/drawTimeGrid';
-import { drawTimeLine } from '@/features/piano-roll/rendering/drawTimeLine';
+import { drawTimeGrid } from '@/features/piano-roll/rendering/grid/drawTimeGrid';
+import { drawTimeLine } from '@/features/piano-roll/rendering/grid/drawTimeLine';
 
-vi.mock('@/features/piano-roll/rendering/drawTimeLine', () => ({
+vi.mock('@/features/piano-roll/rendering/grid/drawTimeLine', () => ({
     drawTimeLine: vi.fn(),
 }));
 

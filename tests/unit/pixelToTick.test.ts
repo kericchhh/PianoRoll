@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import { pixelToTick } from '@/features/piano-roll/utils/pixelToTick';
-import { tickToPixel } from '@/features/piano-roll/utils/tickToPixel';
+import { pixelToTick } from '@/features/piano-roll/utils/coordinates/pixelToTick';
+import { tickToPixel } from '@/features/piano-roll/utils/coordinates/tickToPixel';
 
 test('maps the unscrolled origin to tick zero', () => {
     expect(pixelToTick(0, 0.5, 0)).toBe(0);

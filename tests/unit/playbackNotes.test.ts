@@ -4,7 +4,7 @@ import {
     getNotesToRetrigger,
     getPlaybackEndTick,
     getPlaybackReleases,
-} from '@/features/piano-roll/utils/playbackNotes';
+} from '@/features/piano-roll/utils/notes/playbackNotes';
 
 const base: Note = {
     id: 'held',

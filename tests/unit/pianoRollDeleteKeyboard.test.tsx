@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { PianoRollCanvas } from '@/features/piano-roll/components/PianoRollCanvas';
+import { PianoRollEditor } from '@/features/piano-roll/components/editor/PianoRollEditor';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 import type { Note } from '@/features/piano-roll/types';
 
@@ -33,7 +33,7 @@ test('Delete removes the selected note but keeps other notes', () => {
     store.addNote(makeNote('selected'));
     store.addNote(makeNote('other', 61));
     store.selectNote('selected');
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
 
     const editor = screen.getByRole('group', { name: 'Piano roll editor' });
     editor.focus();
@@ -46,7 +46,7 @@ test('Delete removes the selected note but keeps other notes', () => {
 
 test('Delete does nothing when no note is selected', () => {
     useNoteStore.getState().addNote(makeNote('a'));
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
 
     fireEvent.keyDown(
         screen.getByRole('group', { name: 'Piano roll editor' }),
@@ -62,7 +62,7 @@ test('Delete in the timeline select does not remove a note', () => {
     const store = useNoteStore.getState();
     store.addNote(makeNote('a'));
     store.selectNote('a');
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
 
     const timelineSelect = screen.getByRole('combobox', {
         name: /timeline length/i,
@@ -77,7 +77,7 @@ test('a repeated Delete key event does not remove a note', () => {
     const store = useNoteStore.getState();
     store.addNote(makeNote('a'));
     store.selectNote('a');
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
 
     fireEvent.keyDown(
         screen.getByRole('group', { name: 'Piano roll editor' }),
@@ -91,7 +91,7 @@ test('a repeated Delete key event does not remove a note', () => {
 });
 
 test('clicking the canvas gives the editor keyboard focus', () => {
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
 
     fireEvent.click(screen.getByRole('img', { name: 'Time grid preview' }));
 
@@ -104,7 +104,7 @@ test('deleting a focused note-list button keeps focus inside the editor', () => 
     const store = useNoteStore.getState();
     store.addNote(makeNote('a'));
     store.selectNote('a');
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
 
     const editor = screen.getByRole('group', { name: 'Piano roll editor' });
     const noteButton = screen.getByRole('button', {
@@ -121,7 +121,7 @@ test('deleting a note announces the action', () => {
     const store = useNoteStore.getState();
     store.addNote(makeNote('a'));
     store.selectNote('a');
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
 
     fireEvent.keyDown(
         screen.getByRole('group', { name: 'Piano roll editor' }),
@@ -137,7 +137,7 @@ test('arrow keys move the selected note and announce its new position', () => {
     const store = useNoteStore.getState();
     store.addNote(makeNote('a'));
     store.selectNote('a');
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
 
     const editor = screen.getByRole('group', { name: 'Piano roll editor' });
     editor.focus();
@@ -157,7 +157,7 @@ test('arrow movement works from the focused note-list button', () => {
     const store = useNoteStore.getState();
     store.addNote(makeNote('a'));
     store.selectNote('a');
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
 
     const button = screen.getByRole('button', { name: /Pitch 60, tick 120/i });
     button.focus();
@@ -171,7 +171,7 @@ test('arrows stop at timeline and pitch boundaries', () => {
     const store = useNoteStore.getState();
     store.addNote({ ...makeNote('a', 127), startTick: 8 * 4 * 480 - 120 });
     store.selectNote('a');
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
 
     const editor = screen.getByRole('group', { name: 'Piano roll editor' });
     fireEvent.keyDown(editor, { key: 'ArrowRight' });
@@ -187,7 +187,7 @@ test('modified arrows do not move the selected note', () => {
     const store = useNoteStore.getState();
     store.addNote(makeNote('a'));
     store.selectNote('a');
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
 
     const editor = screen.getByRole('group', { name: 'Piano roll editor' });
     fireEvent.keyDown(editor, { key: 'ArrowRight', shiftKey: true });
@@ -203,7 +203,7 @@ test('Ctrl/Cmd canvas clicks toggle selection and an ordinary click selects excl
     const store = useNoteStore.getState();
     store.addNote(makeNote('a', 72));
     store.addNote(makeNote('b', 71));
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     const canvas = screen.getByRole('img', { name: 'Time grid preview' });
     Object.defineProperties(canvas, {
         clientWidth: { configurable: true, value: 600 },
@@ -231,7 +231,7 @@ test('note-list buttons toggle a group, which can be moved and deleted from the 
     store.addNote({ ...makeNote('a'), startTick: 0 });
     store.addNote(makeNote('b', 64));
     store.addNote(makeNote('unselected', 70));
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     const a = screen.getByRole('button', { name: /Pitch 60, tick 0/i });
     const b = screen.getByRole('button', { name: /Pitch 64, tick 120/i });
 

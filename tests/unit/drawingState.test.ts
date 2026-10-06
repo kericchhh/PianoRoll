@@ -1,9 +1,9 @@
 import { expect, test, vi } from 'vitest';
-import { drawTimeLine } from '@/features/piano-roll/rendering/drawTimeLine';
+import { drawTimeLine } from '@/features/piano-roll/rendering/grid/drawTimeLine';
 import {
     drawPitchBackgrounds,
     drawPitchRows,
-} from '@/features/piano-roll/rendering/drawPitchRows';
+} from '@/features/piano-roll/rendering/grid/drawPitchRows';
 
 test('grid passes establish stroke width instead of inheriting note outline styles', () => {
     const context = {

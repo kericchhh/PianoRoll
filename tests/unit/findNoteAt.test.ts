@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { findNoteAt } from '@/features/piano-roll/utils/findNoteAt';
+import { findNoteAt } from '@/features/piano-roll/utils/notes/findNoteAt';
 import type { Note } from '@/features/piano-roll/types';
 
 const first: Note = {

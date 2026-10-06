@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import { pixelToPitch } from '@/features/piano-roll/utils/pixelToPitch';
-import { pitchToPixel } from '@/features/piano-roll/utils/pitchtoPixel';
+import { pixelToPitch } from '@/features/piano-roll/utils/coordinates/pixelToPitch';
+import { pitchToPixel } from '@/features/piano-roll/utils/coordinates/pitchtoPixel';
 
 test.each([
     [0, 72],

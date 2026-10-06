@@ -3,8 +3,8 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { act, cleanup, renderHook } from '@testing-library/react';
 import type { MouseEvent, PointerEvent } from 'react';
 import { useDrag, useWheel } from '@use-gesture/react';
-import { useNoteInteractions } from '@/features/piano-roll/hooks/useNoteInteractions';
-import { useZoomPan } from '@/features/piano-roll/hooks/useZoomPan';
+import { useNoteInteractions } from '@/features/piano-roll/hooks/notes/useNoteInteractions';
+import { useZoomPan } from '@/features/piano-roll/hooks/editor/useZoomPan';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 import type { Note } from '@/features/piano-roll/types';
 

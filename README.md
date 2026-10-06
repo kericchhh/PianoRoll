@@ -66,6 +66,15 @@ Play again rebuilds the schedule from the current notes and starts at tick zero.
 An empty project stays ready to play. Unmount stops playback, clears the editor's
 event IDs and pending completion callback, and disposes the sampler.
 
+A separate canvas draws the playhead line and ruler marker from the immediate
+audio clock, without per-frame React updates or full-grid redraws. The viewport
+automatically follows at the edge of a zoomed-in grid; pause holds the audible
+position, and completion returns the runner and view to zero. Zooming and panning
+also redraw the frozen runner. A live `Tone.Waveform` taps the sampler output
+beside Play, includes its release tail, and stops polling when idle. Reduced motion
+disables waveform animation while preserving the essential playback indicator.
+Screen readers receive playback-state announcements instead of frame updates.
+
 ## Verification
 
 ```sh
@@ -88,14 +97,20 @@ disabled, run `npm run prepare` separately. Hooks never stage the entire reposit
 
 ## Ownership
 
-- `components/`: editor shell, insertion form, accessible list and context menu.
-- `hooks/`: gesture routing, note actions/announcements, keyboard commands,
-  zoom/pan, canvas lifecycle/scheduling, sampler lifecycle/readiness, and playback
-  scheduling, retriggers, and completion cleanup.
-- `audio/`: the piano sample mapping; audio files and credits are in
+- `components/`: grouped into `editor/`, `toolbar/`, `grid/`, `notes/`, and
+  `playback/`. `PianoRollEditor` composes the header, main workspace, and footer.
+  The header separates tools from playback; the main workspace contains keys,
+  ruler, the editing surface, and the reserved sidebar. The surface composes the
+  grid and playhead canvases, selected-note overlay, context menu, accessible list,
+  instructions, and announcements.
+- `hooks/`: `editor/` owns composition, viewport, grid rendering, and zoom/pan;
+  `notes/` owns actions, announcements, gestures, clipboard, and keyboard commands;
+  `playback/` owns the sampler, controls, scheduling, completion, and visual loops.
+- `audio/`: piano sample mapping, playback types, and note-event scheduling; audio files and credits are in
   `public/audio/piano/`.
-- `rendering/`: Canvas drawing passes, including ghosts and marquee ordering.
-- `utils/`: coordinate conversion, snapping, viewport reveal and note queries.
+- `rendering/`: drawing passes grouped into `grid/`, `notes/`, and `playback/`,
+  with shared colors at the root.
+- `utils/`: grouped into `coordinates/`, `notes/`, `time/`, and `viewport/`.
 - `store/`: normalized note data and atomic group edits.
 
 The note index is derived from the immutable notes record, not stored in Zustand.
@@ -103,6 +118,11 @@ Per-pitch start ordering and prefix maximum endpoints preserve long-note overlap
 queries preserve insertion/drawing order. Drag previews and DOM-overlay positions
 stay in refs/imperative drawing, not per-frame React state. Unchanged accessible
 list rows retain their note references and are memoized.
+
+Every application source file stays within 200 physical lines, and each React
+component has its own file. Select and context-menu primitives retain their
+existing import modules as barrels over individual component files. ESLint
+enforces the line limit for TypeScript source; tests are exempt.
 
 Timeline shortening preserves existing notes; deletion/truncation beyond its end
 remains an explicit product decision rather than an implicit cleanup operation.

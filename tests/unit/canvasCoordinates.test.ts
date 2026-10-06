@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 import {
     clientToCanvasPoint,
     getCanvasScale,
-} from '@/features/piano-roll/utils/canvasCoordinates';
+} from '@/features/piano-roll/utils/coordinates/canvasCoordinates';
 
 test('converts bordered, offset, scaled canvas coordinates', () => {
     const canvas = document.createElement('canvas');

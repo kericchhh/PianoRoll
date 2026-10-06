@@ -23,5 +23,11 @@ export default tseslint.config(
             ],
         },
     },
+    {
+        files: ['src/**/*.{ts,tsx}'],
+        rules: {
+            'max-lines': ['error', { max: 200 }],
+        },
+    },
     prettier,
 );

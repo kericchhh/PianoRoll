@@ -2,8 +2,8 @@ import { expect, test } from 'vitest';
 import {
     createNoteIndex,
     queryNoteIndex,
-} from '@/features/piano-roll/utils/noteIndex';
-import { findNotesInRegion } from '@/features/piano-roll/utils/findNotesInRegion';
+} from '@/features/piano-roll/utils/notes/noteIndex';
+import { findNotesInRegion } from '@/features/piano-roll/utils/notes/findNotesInRegion';
 import type { Note } from '@/features/piano-roll/types';
 
 function note(

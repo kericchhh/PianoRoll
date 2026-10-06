@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { clampScroll } from '@/features/piano-roll/utils/clampScroll';
+import { clampScroll } from '@/features/piano-roll/utils/viewport/clampScroll';
 
 const fourBars = 7680;
 

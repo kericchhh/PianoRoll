@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { isBlackKey } from '@/features/piano-roll/utils/isBlackKey';
+import { isBlackKey } from '@/features/piano-roll/utils/notes/isBlackKey';
 
 test('black-key classification repeats for each MIDI octave', () => {
     const blackClasses = [1, 3, 6, 8, 10];

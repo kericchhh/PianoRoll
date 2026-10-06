@@ -7,6 +7,7 @@ export const PIANO_ROLL_COLORS = {
     noteOutline: '#000000',
     selectedNote: '#ffb18a',
     selectedOutline: '#000000',
+    playhead: '#f1eee7',
     ghost: '#74666c',
     marqueeFill: 'rgba(228, 160, 189, 0.14)',
     marqueeOutline: '#e4a0bd',

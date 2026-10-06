@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest';
-import { drawTimeRuler } from '@/features/piano-roll/rendering/drawTimeRuler';
+import { drawTimeRuler } from '@/features/piano-roll/rendering/grid/drawTimeRuler';
 import type { PianoRollView } from '@/features/piano-roll/types';
 
 const view: PianoRollView = {

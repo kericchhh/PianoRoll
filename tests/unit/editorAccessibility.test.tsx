@@ -8,7 +8,7 @@ import {
     screen,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { PianoRollCanvas } from '@/features/piano-roll/components/PianoRollCanvas';
+import { PianoRollEditor } from '@/features/piano-roll/components/editor/PianoRollEditor';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 import type { Note } from '@/features/piano-roll/types';
 
@@ -31,7 +31,7 @@ afterEach(() => {
 
 test('keyboard users can create and select a first note and hear its creation', async () => {
     const user = userEvent.setup();
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     await user.tab(); // timeline
     await user.tab(); // pitch
     expect(document.activeElement).toBe(
@@ -54,7 +54,7 @@ test('keyboard users can create and select a first note and hear its creation', 
 test('Radix menu arrows and Delete do not reach the editor shortcut handler', async () => {
     const user = userEvent.setup();
     useNoteStore.setState({ notes: { a: note } });
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     const canvas = screen.getByRole('img', { name: 'Time grid preview' });
     Object.defineProperties(canvas, {
         clientWidth: { value: 600 },
@@ -71,7 +71,7 @@ test('Radix menu arrows and Delete do not reach the editor shortcut handler', as
 
 test('already-handled keys do not trigger note edits', () => {
     useNoteStore.setState({ notes: { a: note } });
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     const editor = screen.getByRole('group', { name: 'Piano roll editor' });
     const handled = new KeyboardEvent('keydown', {
         key: 'ArrowUp',
@@ -85,7 +85,7 @@ test('already-handled keys do not trigger note edits', () => {
 
 test('repeated identical announcements replace live-region content', () => {
     useNoteStore.setState({ notes: { a: note } });
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     const button = screen.getByRole('button', { name: /Pitch 72, tick 120/ });
     fireEvent.click(button); // 0 selected
     const first = screen.getByRole('status').firstChild;
@@ -97,7 +97,7 @@ test('repeated identical announcements replace live-region content', () => {
 
 test('selection and movement do not resize the canvas backing store', () => {
     useNoteStore.setState({ notes: { a: note } });
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     const canvas = screen.getByRole('img', {
         name: 'Time grid preview',
     }) as HTMLCanvasElement;
@@ -111,7 +111,7 @@ test('selection and movement do not resize the canvas backing store', () => {
 
 test('the selected-note DOM overlay exposes keyboard editing and follows pitch reveal', () => {
     useNoteStore.setState({ notes: { a: note } });
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     fireEvent.keyDown(
         screen.getByRole('group', { name: 'Piano roll editor' }),
         {
@@ -136,7 +136,7 @@ test.each(['editor', 'overlay', 'list'] as const)(
             durationTicks: 240,
         };
         useNoteStore.setState({ notes: { a: note, b: other } });
-        render(<PianoRollCanvas />);
+        render(<PianoRollEditor />);
         const element =
             target === 'editor'
                 ? screen.getByRole('group', { name: 'Piano roll editor' })
@@ -180,7 +180,7 @@ test.each(['editor', 'overlay', 'list'] as const)(
 test('resizing at either bound is a no-op without live-region announcements', () => {
     const endpointNote = { ...note, startTick: 15240 };
     useNoteStore.setState({ notes: { a: endpointNote } });
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     const editor = screen.getByRole('group', { name: 'Piano roll editor' });
     const before = useNoteStore.getState();
     const liveNode = screen.getByRole('status').firstChild;
@@ -195,7 +195,7 @@ test('resizing at either bound is a no-op without live-region announcements', ()
 
 test('Shift+Up/Down and other modified horizontal keys do not resize or move notes', () => {
     useNoteStore.setState({ notes: { a: note } });
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     const editor = screen.getByRole('group', { name: 'Piano roll editor' });
     const before = useNoteStore.getState();
 
@@ -215,7 +215,7 @@ test('Shift+Up/Down and other modified horizontal keys do not resize or move not
 
 test('Shift+Right in an insertion input keeps the editor selection unchanged', () => {
     useNoteStore.setState({ notes: { a: note } });
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     const pitchInput = screen.getByRole('spinbutton', {
         name: 'New note pitch',
     });
@@ -230,7 +230,7 @@ test('Shift+Right in an insertion input keeps the editor selection unchanged', (
 
 test('resize shortcuts and instructions are exposed with the selected note', () => {
     useNoteStore.setState({ notes: { a: note } });
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     const editor = screen.getByRole('group', { name: 'Piano roll editor' });
     const overlay = screen.getByRole('group', {
         name: /Selected note: pitch 72/,

@@ -111,12 +111,28 @@ src/
   app/                    # app shell, top-level layout
   features/
     piano-roll/
-      components/         # PianoRollCanvas, VelocityLane, Toolbar, etc.
-      hooks/               # usePlayback, useZoomPan, useKeyboardShortcuts
+      components/
+        editor/            # shell, header/footer, announcements, sidebar
+        toolbar/           # tools, timeline length, snap indicator
+        grid/              # surface, canvas, keys, ruler
+        notes/             # insertion, list, context menu, selected overlay
+        playback/          # controls, status, waveform, playhead
+      hooks/
+        editor/            # composition, viewport, grid renderer, zoom/pan
+        notes/             # actions, gestures, clipboard, keyboard
+        playback/          # sampler, scheduling, controls, visual renderers
       store/               # Zustand store + command history
       audio/               # Tone.js setup, scheduler glue
       midi/                # import/export via @tonejs/midi
-      utils/               # tickToPixel, snapping, hit-testing
+      rendering/
+        grid/              # grid, pitch rows, timeline
+        notes/             # notes and marquee
+        playback/          # playhead and waveform
+      utils/
+        coordinates/       # pixel/tick/pitch conversion and event mapping
+        notes/             # queries, group edits, playback note math
+        time/              # snapping and tick/second conversion
+        viewport/          # zoom/scroll bounds, reveal, playback following
       types.ts
   shared/
     components/            # generic accessible primitives
@@ -173,6 +189,7 @@ type Command =
 - Use four spaces for indentation. Prettier enforces `tabWidth: 4` and `useTabs: false`.
 - Named exports for components (better refactor tooling / tree-shaking clarity) — default export only for pages/entry points.
 - One responsibility per file; canvas drawing logic lives separately from React component lifecycle glue.
+- Application files in `src/` must stay at or below 200 physical lines, including comments and blank lines. Each React component lives in its own file; related shared primitives may retain a barrel module for imports. This size limit does not apply to tests.
 - Every non-trivial pure function (tick math, snapping, hit-testing, command reducers) gets a unit test — UI rendering itself doesn't need exhaustive tests, but logic does.
 - Conventional Commits style messages (`feat:`, `fix:`, `refactor:`), one logical change per commit.
 - Pre-commit: lint-staged running ESLint + Prettier + `tsc --noEmit`.
@@ -219,6 +236,7 @@ When a task surfaces a genuine unresolved design choice (e.g., exact PPQ resolut
 - Confirmed: shared controls use shadcn/ui with Radix primitives, including the custom Select for timeline length, and Sonner for toast notifications. App passes actual readiness and failure state to `usePlaybackControls`, which owns readiness toasts and audio-context activation and calls `usePlayback`'s toggle callback. Its returned action is shared by PlaybackControls and the editor's Space shortcut. PlaybackControls receives isPlaying/onPlay props; the playback hook owns Transport scheduling and cleanup. Note data stays in ticks. Space works from grid, selected-note overlay, and note-list focus, respects editable/menu/gesture guards, and ignores repeat and modified keys. Enter toggles a focused note-list button's selection.
 - Confirmed: the default visual theme is near-black with peach and pink accents. Controls, toasts, canvas notes, and focus indicators follow this palette; color choices are delegated to the agent for this theme request.
 - Confirmed: the user chose pause/resume. The playback button switches between Play and Pause icons and accessible labels. Pausing/resuming retains the existing scheduled note events and transport position; resuming must not schedule duplicate events.
+- Confirmed: playback has a canvas playhead with a ruler marker and automatically follows when it reaches the visible grid edge. Its tick comes from the immediate audio clock, bypassing React state; completion returns the runner and view to zero. A live waveform beside Play taps the sampler output, respects reduced motion, and clears after the release tail. Playback-state announcements do not announce every frame.
 - Confirmed: resume reattacks notes held at the paused position for their remaining time. Playback finishes at the latest note endpoint, returns the button to Play, and permits replay from tick zero. An empty project stays ready to play.
 - Confirmed: overlapping notes of the same pitch share a release at their latest endpoint. Back-to-back notes release before the next attack. Schedule attacks and releases separately so Sampler.releaseAll can release held voices on pause.
 - Implemented: playback captures the notes at a fresh start; resume retains that schedule and does not mix in edits made while paused. Completion waits for the audio clock to reach the endpoint; pause, replay, and unmount cancel or invalidate pending completion callbacks. A fresh start clears the editor's old event IDs. Unmount stops the transport and clears owned events; sampler disposal and callback identity guards prevent late callbacks from using a disposed sampler or an old playback session.

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { revealNotes } from '@/features/piano-roll/utils/revealNotes';
+import { revealNotes } from '@/features/piano-roll/utils/viewport/revealNotes';
 import type { Note, PianoRollView } from '@/features/piano-roll/types';
 
 const view: PianoRollView = {

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { isNoteResizeHandle } from '@/features/piano-roll/utils/isNoteResizeHandle';
+import { isNoteResizeHandle } from '@/features/piano-roll/utils/notes/isNoteResizeHandle';
 
 const note = { startTick: 120, durationTicks: 120 };
 

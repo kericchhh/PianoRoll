@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import {
     pasteNoteGroup,
     type CopiedNote,
-} from '@/features/piano-roll/utils/pasteNoteGroup';
+} from '@/features/piano-roll/utils/notes/pasteNoteGroup';
 
 const copied: readonly CopiedNote[] = [
     { pitch: 64, startTick: 390, durationTicks: 240, velocity: 127 },

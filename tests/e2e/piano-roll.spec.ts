@@ -96,9 +96,9 @@ test('keyboard-only insertion, movement, reveal and deletion', async ({
     await page.keyboard.press('Tab'); // tick
     await page.keyboard.press('Tab'); // add
     await page.keyboard.press('Enter');
-    await expect(page.getByRole('status')).toHaveText(
-        'Added pitch 72 at tick 0',
-    );
+    await expect(
+        page.getByRole('status', { name: 'Note editing status' }),
+    ).toHaveText('Added pitch 72 at tick 0');
     await page
         .getByRole('group', { name: 'Piano roll editor', exact: true })
         .focus();
@@ -149,11 +149,13 @@ test('native Ctrl/Cmd clipboard shortcuts paste groups, then move and delete onl
     });
     await editor.focus();
     await page.keyboard.press('Control+c');
-    await expect(page.getByRole('status')).toHaveText('Copied 2 notes');
+    await expect(
+        page.getByRole('status', { name: 'Note editing status' }),
+    ).toHaveText('Copied 2 notes');
     await page.keyboard.press('Control+v');
-    await expect(page.getByRole('status')).toHaveText(
-        'Pasted 2 notes at tick 600',
-    );
+    await expect(
+        page.getByRole('status', { name: 'Note editing status' }),
+    ).toHaveText('Pasted 2 notes at tick 600');
     const firstPaste = Object.values(await readNotes(page)).filter(
         (note) => note.selected,
     );
@@ -162,9 +164,9 @@ test('native Ctrl/Cmd clipboard shortcuts paste groups, then move and delete onl
         { ...other, id: expect.any(String), startTick: 840 },
     ]);
     await page.keyboard.press('Meta+v');
-    await expect(page.getByRole('status')).toHaveText(
-        'Pasted 2 notes at tick 1080',
-    );
+    await expect(
+        page.getByRole('status', { name: 'Note editing status' }),
+    ).toHaveText('Pasted 2 notes at tick 1080');
     const pasted = Object.values(await readNotes(page)).filter(
         (note) => note.selected,
     );
@@ -179,13 +181,15 @@ test('native Ctrl/Cmd clipboard shortcuts paste groups, then move and delete onl
             pitch: note.pitch - 1,
         });
     await page.keyboard.press('Delete');
-    await expect(page.getByRole('status')).toHaveText('Deleted 2 notes');
+    await expect(
+        page.getByRole('status', { name: 'Note editing status' }),
+    ).toHaveText('Deleted 2 notes');
     expect(Object.keys(await readNotes(page))).toHaveLength(4);
     await expect(editor).toBeFocused();
     await page.keyboard.press('Control+v');
-    await expect(page.getByRole('status')).toHaveText(
-        'Pasted 2 notes at tick 1560',
-    );
+    await expect(
+        page.getByRole('status', { name: 'Note editing status' }),
+    ).toHaveText('Pasted 2 notes at tick 1560');
     await expect(editor).toBeFocused();
 });
 
@@ -207,9 +211,9 @@ test('clipboard respects text inputs and rejects a whole group beyond the timeli
     ]);
     await editor.focus();
     await page.keyboard.press('Control+v');
-    await expect(page.getByRole('status')).toHaveText(
-        'Cannot paste: copied notes do not fit in the timeline',
-    );
+    await expect(
+        page.getByRole('status', { name: 'Note editing status' }),
+    ).toHaveText('Cannot paste: copied notes do not fit in the timeline');
     expect(Object.values(await readNotes(page))).toEqual([
         { ...base, startTick: 15240 },
     ]);
@@ -263,9 +267,9 @@ test('native right-edge resize previews the selected group and commits its durat
             a: { ...base, durationTicks: 240 },
             b: { ...other, durationTicks: 360 },
         });
-    await expect(page.getByRole('status')).toHaveText(
-        /Resized 2 notes.*duration 240 ticks/,
-    );
+    await expect(
+        page.getByRole('status', { name: 'Note editing status' }),
+    ).toHaveText(/Resized 2 notes.*duration 240 ticks/);
     // The duration update must invalidate the hit-test index as well as the drawing.
     const point = await position(page, 150, 10);
     await page.mouse.click(point.x, point.y);
@@ -354,9 +358,9 @@ test('note-list keyboard resizing preserves focus and announces duration without
             name: /Pitch 72, tick 120, duration 240 ticks/,
         }),
     ).toBeFocused();
-    await expect(page.getByRole('status')).toHaveText(
-        'Resized pitch 72 to duration 240 ticks',
-    );
+    await expect(
+        page.getByRole('status', { name: 'Note editing status' }),
+    ).toHaveText('Resized pitch 72 to duration 240 ticks');
     expect((await readNotes(page)).a).toEqual({ ...base, durationTicks: 240 });
     await page.keyboard.press('Shift+ArrowLeft');
     expect((await readNotes(page)).a).toEqual(base);
@@ -436,7 +440,9 @@ test('native Ctrl marquee selects overlaps and preserves their group movement', 
     expect((await readNotes(page)).a.selected).toBe(false);
     await page.mouse.up();
     await page.keyboard.up('Control');
-    await expect(page.getByRole('status')).toHaveText('2 notes selected');
+    await expect(
+        page.getByRole('status', { name: 'Note editing status' }),
+    ).toHaveText('2 notes selected');
     await page.keyboard.press('ArrowRight');
     expect((await readNotes(page)).a).toMatchObject({
         selected: true,
@@ -649,14 +655,14 @@ test('measures real Canvas rendering for a 1000-note viewport', async ({
 }, testInfo) => {
     const timings = await page.evaluate(async () => {
         const rendererPath =
-            '/src/features/piano-roll/rendering/drawPianoRoll.ts';
-        const indexPath = '/src/features/piano-roll/utils/noteIndex.ts';
+            '/src/features/piano-roll/rendering/grid/drawPianoRoll.ts';
+        const indexPath = '/src/features/piano-roll/utils/notes/noteIndex.ts';
         const { drawPianoRoll } = (await import(
             rendererPath
-        )) as typeof import('@/features/piano-roll/rendering/drawPianoRoll');
+        )) as typeof import('@/features/piano-roll/rendering/grid/drawPianoRoll');
         const { createNoteIndex } = (await import(
             indexPath
-        )) as typeof import('@/features/piano-roll/utils/noteIndex');
+        )) as typeof import('@/features/piano-roll/utils/notes/noteIndex');
         const notes = Object.fromEntries(
             Array.from({ length: 1000 }, (_, i) => [
                 String(i),

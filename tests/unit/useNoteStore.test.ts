@@ -4,7 +4,7 @@ import type { Note } from '@/features/piano-roll/types';
 import {
     createNoteIndex,
     queryNoteIndex,
-} from '@/features/piano-roll/utils/noteIndex';
+} from '@/features/piano-roll/utils/notes/noteIndex';
 
 function makeNote(id: string): Note {
     return {

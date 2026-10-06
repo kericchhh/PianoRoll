@@ -4,8 +4,8 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as Tone from 'tone';
 import { toast } from 'sonner';
-import { PlaybackControls } from '@/features/piano-roll/components/PlaybackControls';
-import { usePlaybackControls } from '@/features/piano-roll/hooks/usePlaybackControls';
+import { PlaybackControls } from '@/features/piano-roll/components/playback/PlaybackControls';
+import { usePlaybackControls } from '@/features/piano-roll/hooks/playback/usePlaybackControls';
 
 function ControlsHarness(
     props: Parameters<typeof usePlaybackControls>[0] & { isPlaying: boolean },
@@ -25,6 +25,32 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
+test('playback announces distinct start, pause, and completion states through a hidden status', () => {
+    const onPlay = vi.fn();
+    const { rerender } = render(
+        <PlaybackControls onPlay={onPlay} isPlaying playbackState="playing" />,
+    );
+    const status = screen.getByRole('status', { name: 'Playback status' });
+    expect(status.textContent).toBe('Playing');
+    expect(status.className).toBe('sr-only');
+    rerender(
+        <PlaybackControls
+            onPlay={onPlay}
+            isPlaying={false}
+            playbackState="paused"
+        />,
+    );
+    expect(status.textContent).toBe('Playback paused');
+    rerender(
+        <PlaybackControls
+            onPlay={onPlay}
+            isPlaying={false}
+            playbackState="stopped"
+        />,
+    );
+    expect(status.textContent).toBe('Playback stopped');
+});
+
 test('Play remains keyboard operable before readiness and gives feedback without enabling audio', async () => {
     const user = userEvent.setup();
     const onPlay = vi.fn();
@@ -37,7 +63,8 @@ test('Play remains keyboard operable before readiness and gives feedback without
     );
     expect(toast.info).not.toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByRole('status').className).toBe('sr-only');
+    expect(screen.getByRole('status').textContent).toBe('Playback stopped');
 
     await user.tab();
     await user.keyboard('{Enter}');

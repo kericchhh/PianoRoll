@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import type { Note } from '@/features/piano-roll/types';
-import { resizeNoteGroup } from '@/features/piano-roll/utils/resizeNoteGroup';
+import { resizeNoteGroup } from '@/features/piano-roll/utils/notes/resizeNoteGroup';
 
 const notes: Note[] = [
     {

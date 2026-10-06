@@ -10,8 +10,8 @@ import {
 } from '@testing-library/react';
 import { useDrag } from '@use-gesture/react';
 import type { MouseEvent, PointerEvent } from 'react';
-import { PianoRollCanvas } from '@/features/piano-roll/components/PianoRollCanvas';
-import { useNoteInteractions } from '@/features/piano-roll/hooks/useNoteInteractions';
+import { PianoRollEditor } from '@/features/piano-roll/components/editor/PianoRollEditor';
+import { useNoteInteractions } from '@/features/piano-roll/hooks/notes/useNoteInteractions';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 import type { MarqueeRect, Note } from '@/features/piano-roll/types';
 
@@ -327,7 +327,7 @@ test('canvas draws the marquee above notes and focuses the editor for keyboard o
         return 1;
     });
     vi.stubGlobal('cancelAnimationFrame', vi.fn());
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     const canvas = screen.getByRole('img', { name: 'Time grid preview' });
     setCanvasSize(canvas);
     fireEvent.pointerDown(canvas, {

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { moveNoteGroup } from '@/features/piano-roll/utils/moveNoteGroup';
+import { moveNoteGroup } from '@/features/piano-roll/utils/notes/moveNoteGroup';
 import type { Note } from '@/features/piano-roll/types';
 
 const notes: Note[] = [

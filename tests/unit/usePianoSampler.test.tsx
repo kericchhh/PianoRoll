@@ -13,11 +13,13 @@ import * as Tone from 'tone';
 import type { SamplerOptions } from 'tone';
 import { toast } from 'sonner';
 import { App } from '@/app/App';
-import { usePianoSampler } from '@/features/piano-roll/hooks/usePianoSampler';
+import { usePianoSampler } from '@/features/piano-roll/hooks/playback/usePianoSampler';
+import { usePlayback } from '@/features/piano-roll/hooks/playback/usePlayback';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 
 const {
     samplers,
+    waveforms,
     transport,
     context,
     scheduledEvents,
@@ -80,9 +82,15 @@ const {
         triggerAttack: ReturnType<typeof vi.fn>;
         triggerRelease: ReturnType<typeof vi.fn>;
         releaseAll: ReturnType<typeof vi.fn>;
+        connect: ReturnType<typeof vi.fn>;
+    }[] = [];
+    const waveforms: {
+        dispose: ReturnType<typeof vi.fn>;
+        getValue: ReturnType<typeof vi.fn>;
     }[] = [];
     return {
         samplers,
+        waveforms,
         transport,
         context,
         scheduledEvents,
@@ -99,6 +107,16 @@ vi.mock('tone', () => ({
     getTransport: vi.fn(() => transport),
     getContext: vi.fn(() => context),
     now: vi.fn(() => 12),
+    immediate: vi.fn(() => context.immediate()),
+    Waveform: vi.fn(
+        class {
+            dispose = vi.fn();
+            getValue = vi.fn(() => new Float32Array([0, 0.5, -0.5]));
+            constructor() {
+                waveforms.push(this);
+            }
+        },
+    ),
     Midi: vi.fn((pitch: number) => ({
         toNote: () => {
             const notes: Record<number, string> = { 60: 'C4', 64: 'E4' };
@@ -112,6 +130,7 @@ vi.mock('tone', () => ({
             triggerAttack = vi.fn();
             triggerRelease = vi.fn();
             releaseAll = vi.fn();
+            connect = vi.fn();
             options: Partial<SamplerOptions>;
             constructor(options: Partial<SamplerOptions>) {
                 this.options = {
@@ -132,14 +151,15 @@ vi.mock('tone', () => ({
 vi.mock('sonner', () => ({
     toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() },
 }));
-vi.mock('@/features/piano-roll/components/PianoRollCanvas', () => ({
-    PianoRollCanvas: ({ playbackControls }: { playbackControls: ReactNode }) =>
+vi.mock('@/features/piano-roll/components/editor/PianoRollEditor', () => ({
+    PianoRollEditor: ({ playbackControls }: { playbackControls: ReactNode }) =>
         playbackControls,
 }));
 vi.mock('@/shared/components/ui/sonner', () => ({ Toaster: () => null }));
 
 beforeEach(() => {
     samplers.length = 0;
+    waveforms.length = 0;
     vi.clearAllMocks();
     scheduledEvents.clear();
     completionTimers.clear();
@@ -151,6 +171,38 @@ beforeEach(() => {
     vi.mocked(Tone.start).mockResolvedValue(undefined);
 });
 afterEach(cleanup);
+
+test('waveform taps the sampler output and its stable getter follows the active effect lifetime', () => {
+    const { result, rerender, unmount } = renderHook(usePianoSampler, {
+        wrapper: StrictMode,
+    });
+    const [discarded, current] = waveforms;
+    expect(Tone.Waveform).toHaveBeenCalledWith(512);
+    expect(samplers[1].connect).toHaveBeenCalledExactlyOnceWith(current);
+    expect(discarded.dispose).toHaveBeenCalledOnce();
+    const getter = result.current.getWaveformSamples;
+    expect(getter()).toEqual(new Float32Array([0, 0.5, -0.5]));
+    expect(discarded.getValue).not.toHaveBeenCalled();
+    rerender();
+    expect(result.current.getWaveformSamples).toBe(getter);
+    expect(waveforms).toHaveLength(2);
+    unmount();
+    expect(current.dispose).toHaveBeenCalledOnce();
+    expect(getter()).toBeNull();
+    expect(current.getValue).toHaveBeenCalledOnce();
+});
+
+test('playhead reads the immediate audio clock and converts transport ticks to editor PPQ', () => {
+    const { result, rerender } = renderHook(() =>
+        usePlayback({ current: null }),
+    );
+    transport.seconds = 0.5;
+    const getter = result.current.getPlaybackTick;
+    expect(getter()).toBe(480);
+    expect(transport.getTicksAtTime).toHaveBeenCalledWith(11.9);
+    rerender();
+    expect(result.current.getPlaybackTick).toBe(getter);
+});
 
 test('creates one sampler per effect lifetime and becomes ready only when samples load', () => {
     const { result, rerender } = renderHook(usePianoSampler);

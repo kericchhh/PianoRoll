@@ -9,9 +9,9 @@ import {
     screen,
 } from '@testing-library/react';
 import { useDrag } from '@use-gesture/react';
-import { useNoteInteractions } from '@/features/piano-roll/hooks/useNoteInteractions';
+import { useNoteInteractions } from '@/features/piano-roll/hooks/notes/useNoteInteractions';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
-import { PianoRollCanvas } from '@/features/piano-roll/components/PianoRollCanvas';
+import { PianoRollEditor } from '@/features/piano-roll/components/editor/PianoRollEditor';
 import { PIANO_ROLL_COLORS } from '@/features/piano-roll/rendering/colors';
 import type { Note } from '@/features/piano-roll/types';
 
@@ -217,7 +217,7 @@ test('all origin ghosts are drawn beneath the moving notes when their positions 
     useNoteStore
         .getState()
         .addNote({ ...original, id: 'b', startTick: 240, pitch: 71 });
-    render(<PianoRollCanvas />);
+    render(<PianoRollEditor />);
     const canvas = screen.getByRole('img', { name: 'Time grid preview' });
     Object.defineProperties(canvas, {
         clientWidth: { configurable: true, value: 600 },

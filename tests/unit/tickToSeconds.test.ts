@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { tickToSeconds } from '@/features/piano-roll/utils/tickToSeconds';
+import { tickToSeconds } from '@/features/piano-roll/utils/time/tickToSeconds';
 
 test('converts tick to second', () => {
     expect(tickToSeconds(960, 480, 60)).toBe(2);

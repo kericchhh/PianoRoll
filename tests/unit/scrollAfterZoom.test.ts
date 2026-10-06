@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { scrollAfterZoom } from '@/features/piano-roll/utils/scrollAfterZoom';
+import { scrollAfterZoom } from '@/features/piano-roll/utils/viewport/scrollAfterZoom';
 
 test('keeps the cursor tick fixed when zooming in', () => {
     expect(scrollAfterZoom(120, 0, 0.5, 1)).toBe(120);

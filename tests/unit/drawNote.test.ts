@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest';
-import { drawNote } from '@/features/piano-roll/rendering/drawNote';
+import { drawNote } from '@/features/piano-roll/rendering/notes/drawNote';
 import { PIANO_ROLL_COLORS } from '@/features/piano-roll/rendering/colors';
 
 function makeContext() {

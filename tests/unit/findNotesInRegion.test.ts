@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { findNotesInRegion } from '@/features/piano-roll/utils/findNotesInRegion';
+import { findNotesInRegion } from '@/features/piano-roll/utils/notes/findNotesInRegion';
 import type { Note, NoteRegion } from '@/features/piano-roll/types';
 
 const region: NoteRegion = {

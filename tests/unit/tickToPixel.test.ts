@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { tickToPixel } from '@/features/piano-roll/utils/tickToPixel';
+import { tickToPixel } from '@/features/piano-roll/utils/coordinates/tickToPixel';
 
 test('places tick zero at the origin', () => {
     expect(tickToPixel(0, 0.25, 0)).toBe(0);
