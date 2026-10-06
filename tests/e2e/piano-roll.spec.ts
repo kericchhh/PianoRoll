@@ -131,6 +131,91 @@ test('real Radix menu navigation cannot move or delete the selection', async ({
     await expect(page.getByRole('menu')).toBeVisible();
 });
 
+test('native Ctrl/Cmd clipboard shortcuts paste groups, then move and delete only the new selection', async ({
+    page,
+}) => {
+    const other = {
+        ...base,
+        id: 'b',
+        pitch: 70,
+        startTick: 360,
+        durationTicks: 240,
+        velocity: 70,
+    };
+    await seed(page, [base, other]);
+    const editor = page.getByRole('group', {
+        name: 'Piano roll editor',
+        exact: true,
+    });
+    await editor.focus();
+    await page.keyboard.press('Control+c');
+    await expect(page.getByRole('status')).toHaveText('Copied 2 notes');
+    await page.keyboard.press('Control+v');
+    await expect(page.getByRole('status')).toHaveText(
+        'Pasted 2 notes at tick 600',
+    );
+    const firstPaste = Object.values(await readNotes(page)).filter(
+        (note) => note.selected,
+    );
+    expect(firstPaste).toEqual([
+        { ...base, id: expect.any(String), startTick: 600 },
+        { ...other, id: expect.any(String), startTick: 840 },
+    ]);
+    await page.keyboard.press('Meta+v');
+    await expect(page.getByRole('status')).toHaveText(
+        'Pasted 2 notes at tick 1080',
+    );
+    const pasted = Object.values(await readNotes(page)).filter(
+        (note) => note.selected,
+    );
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowDown');
+    const moved = await readNotes(page);
+    expect(moved.a).toEqual({ ...base, selected: false });
+    for (const note of pasted)
+        expect(moved[note.id]).toEqual({
+            ...note,
+            startTick: note.startTick + 120,
+            pitch: note.pitch - 1,
+        });
+    await page.keyboard.press('Delete');
+    await expect(page.getByRole('status')).toHaveText('Deleted 2 notes');
+    expect(Object.keys(await readNotes(page))).toHaveLength(4);
+    await expect(editor).toBeFocused();
+    await page.keyboard.press('Control+v');
+    await expect(page.getByRole('status')).toHaveText(
+        'Pasted 2 notes at tick 1560',
+    );
+    await expect(editor).toBeFocused();
+});
+
+test('clipboard respects text inputs and rejects a whole group beyond the timeline', async ({
+    page,
+}) => {
+    await seed(page, [{ ...base, startTick: 15240 }]);
+    const editor = page.getByRole('group', {
+        name: 'Piano roll editor',
+        exact: true,
+    });
+    await editor.focus();
+    await page.keyboard.press('Meta+c');
+    const pitchInput = page.getByRole('spinbutton', { name: 'New note pitch' });
+    await pitchInput.focus();
+    await page.keyboard.press('Control+v');
+    expect(Object.values(await readNotes(page))).toEqual([
+        { ...base, startTick: 15240 },
+    ]);
+    await editor.focus();
+    await page.keyboard.press('Control+v');
+    await expect(page.getByRole('status')).toHaveText(
+        'Cannot paste: copied notes do not fit in the timeline',
+    );
+    expect(Object.values(await readNotes(page))).toEqual([
+        { ...base, startTick: 15240 },
+    ]);
+    await expect(editor).toBeFocused();
+});
+
 test('native note drag previews then commits without a generated add click', async ({
     page,
 }) => {
@@ -441,26 +526,43 @@ test('timeline Select supports keyboard changes and returns focus without editin
 test('loading feedback is announced without taking focus or stacking repeated Play clicks', async ({
     page,
 }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    const play = page.getByRole('button', { name: 'Play', exact: true });
-    await expect(page.getByText('Loading piano samples…')).toHaveCount(0);
-    await play.focus();
-    await page.keyboard.press('Enter');
-    const notification = page.getByText('Loading piano samples…');
-    await expect(notification).toBeVisible();
-    await expect(play).toBeFocused();
-    await page.keyboard.press('Enter');
-    await expect(notification).toHaveCount(1);
-    await expect(
-        page.getByRole('region', { name: /Notifications/ }),
-    ).toHaveAttribute('aria-live', 'polite');
-    await expect(page.locator('[data-sonner-toast]')).toHaveCSS(
-        'transition-duration',
-        '0s',
-    );
-    await page.getByRole('button', { name: 'Close toast' }).click();
-    await expect(notification).toHaveCount(0);
-    expect(await readNotes(page)).toEqual({});
+    let releaseSamples!: () => void;
+    const samplesPending = new Promise<void>((resolve) => {
+        releaseSamples = resolve;
+    });
+    await page.route('**/audio/piano/*.mp3', async (route) => {
+        await samplesPending;
+        await route.continue();
+    });
+
+    try {
+        // beforeEach already loaded the app; reload with the sample gate installed.
+        await page.reload();
+        await waitForCanvasSize(page);
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+        const play = page.getByRole('button', { name: 'Play', exact: true });
+        await expect(page.getByText('Loading piano samples…')).toHaveCount(0);
+        await play.focus();
+        await page.keyboard.press('Enter');
+        const notification = page.getByText('Loading piano samples…');
+        await expect(notification).toBeVisible();
+        await expect(play).toBeFocused();
+        await page.keyboard.press('Enter');
+        await expect(notification).toHaveCount(1);
+        await expect(
+            page.getByRole('region', { name: /Notifications/ }),
+        ).toHaveAttribute('aria-live', 'polite');
+        await expect(page.locator('[data-sonner-toast]')).toHaveCSS(
+            'transition-duration',
+            '0s',
+        );
+        await page.getByRole('button', { name: 'Close toast' }).click();
+        await expect(notification).toHaveCount(0);
+        expect(await readNotes(page)).toEqual({});
+    } finally {
+        releaseSamples();
+        await page.unrouteAll({ behavior: 'wait' });
+    }
 });
 
 test('workspace fills the viewport and keeps notes and keys aligned after resizing', async ({

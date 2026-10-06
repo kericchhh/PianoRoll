@@ -35,7 +35,7 @@ test('draws a selected note with a visible outline', () => {
     expect(context.strokeStyle).toBe(PIANO_ROLL_COLORS.selectedOutline);
 });
 
-test('does not outline an unselected note', () => {
+test('draws a thin inset border separating adjacent unselected notes', () => {
     const { context, strokeRect } = makeContext();
     drawNote(
         context,
@@ -43,7 +43,9 @@ test('does not outline an unselected note', () => {
         view,
     );
 
-    expect(strokeRect).not.toHaveBeenCalled();
+    expect(strokeRect).toHaveBeenCalledWith(60.5, 20.5, 59, 19);
+    expect(context.lineWidth).toBe(1);
+    expect(context.strokeStyle).toBe(PIANO_ROLL_COLORS.noteOutline);
 });
 
 test('draws an unselected origin ghost with its supplied color', () => {

@@ -57,8 +57,10 @@ import { useElementSize } from '@/shared/hooks/useElementSize';
 
 export function PianoRollCanvas({
     playbackControls,
+    onTogglePlayback,
 }: {
     playbackControls?: ReactNode;
+    onTogglePlayback?: () => void;
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rulerRef = useRef<HTMLCanvasElement>(null);
@@ -148,6 +150,7 @@ export function PianoRollCanvas({
         onReveal,
         queryNotes,
         surfaceRef,
+        onTogglePlayback,
     });
 
     useZoomPan({
@@ -239,6 +242,7 @@ export function PianoRollCanvas({
                     role="group"
                     aria-label="Piano roll editor"
                     aria-describedby={instructionsId}
+                    aria-keyshortcuts="Space Control+c Meta+c Control+v Meta+v"
                     tabIndex={0}
                     onKeyDown={handleEditorKeyDown}
                     className="group relative min-h-0 min-w-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
@@ -277,14 +281,17 @@ export function PianoRollCanvas({
                                         tabIndex={0}
                                         role="group"
                                         aria-label={`Selected note: pitch ${selectedNote.pitch}, tick ${selectedNote.startTick}, duration ${selectedNote.durationTicks} ticks`}
-                                        aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowLeft Shift+ArrowRight Delete"
+                                        aria-keyshortcuts="Space ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowLeft Shift+ArrowRight Delete Control+c Meta+c Control+v Meta+v"
                                         className="absolute outline-2 outline-offset-1 outline-transparent group-focus-within:outline-ring focus-visible:outline-ring"
                                     >
                                         <span className="sr-only">
                                             Use arrow keys to move this
                                             selection, Shift+Left or Shift+Right
                                             to resize it, or Delete to remove
-                                            it.
+                                            it. Ctrl or Command+C copies the
+                                            selection; Ctrl or Command+V pastes
+                                            it after the selected group. Space
+                                            toggles playback.
                                         </span>
                                     </div>
                                 )}
@@ -303,8 +310,11 @@ export function PianoRollCanvas({
                         keyboard, arrow keys to move selected notes, Shift+Left
                         or Shift+Right to resize them, and Delete to remove
                         them. Drag a note's right edge to resize the selection.
-                        Use the New note pitch and Start tick fields followed by
-                        Add note to insert a note.
+                        Ctrl or Command+C copies selected notes. Ctrl or
+                        Command+V pastes after the selected group or last paste.
+                        Space toggles playback. Enter toggles a focused
+                        note-list button's selection. Use the New note pitch and
+                        Start tick fields followed by Add note to insert a note.
                     </p>
                     <NoteList notes={notes} onSelect={selectNote} />
                     <p role="status" aria-atomic="true" className="sr-only">
@@ -318,6 +328,8 @@ export function PianoRollCanvas({
             <footer className="flex flex-wrap gap-x-6 gap-y-1 border-t border-border bg-secondary px-4 py-2 text-xs text-muted-foreground">
                 <span>Click to draw. Drag a note to move it.</span>
                 <span>Shift-drag to pan. Ctrl-wheel to zoom.</span>
+                <span>Ctrl / ⌘+C and +V copy and paste notes.</span>
+                <span>Space plays / pauses.</span>
                 <span className="hidden lg:inline">
                     Ctrl / ⌘-drag empty grid to select notes.
                 </span>

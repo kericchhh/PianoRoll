@@ -10,6 +10,7 @@ export interface Note {
 export interface NoteStoreState {
     notes: Record<string, Note>;
     addNote: (note: Note) => void;
+    pasteNotes: (notes: readonly Note[]) => void;
     selectNote: (id: string) => void;
     selectNotes: (ids: readonly string[]) => void;
     toggleNoteSelection: (id: string) => void;

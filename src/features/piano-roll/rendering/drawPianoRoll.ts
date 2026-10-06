@@ -1,7 +1,7 @@
 import type { MarqueeRect, Note, PianoRollView } from '../types';
 import { queryNoteIndex, type NoteIndex } from '../utils/noteIndex';
 import { drawTimeGrid } from './drawTimeGrid';
-import { drawPitchRows } from './drawPitchRows';
+import { drawPitchBackgrounds, drawPitchRows } from './drawPitchRows';
 import { drawNote } from './drawNote';
 import { drawMarquee } from './drawMarquee';
 import { PIANO_ROLL_COLORS } from './colors';
@@ -23,6 +23,7 @@ export function drawPianoRoll(context: CanvasRenderingContext2D, scene: Scene) {
         0,
         Math.min(width, endTick * view.pixelsPerTick - view.scrollOffsetX),
     );
+    drawPitchBackgrounds(context, gridWidth, height, view);
     drawTimeGrid(
         context,
         width,

@@ -11,6 +11,25 @@ export const useNoteStore = create<NoteStoreState>()((set, get) => ({
                 [note.id]: note,
             },
         })),
+    pasteNotes: (pasted) =>
+        set((state) => {
+            if (pasted.length === 0) return state;
+            const ids = new Set(pasted.map((note) => note.id));
+            if (
+                ids.size !== pasted.length ||
+                pasted.some((note) => Object.hasOwn(state.notes, note.id))
+            )
+                return state;
+            const notes = { ...state.notes };
+            for (const note of Object.values(state.notes)) {
+                if (note.selected)
+                    notes[note.id] = { ...note, selected: false };
+            }
+            for (const note of pasted) {
+                notes[note.id] = { ...note, selected: true };
+            }
+            return { notes };
+        }),
     selectNote: (id) => {
         if (get().notes[id]) get().selectNotes([id]);
     },

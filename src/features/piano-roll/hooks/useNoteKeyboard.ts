@@ -14,6 +14,9 @@ type Options = {
         resized: readonly Note[],
     ) => void;
     deleteNotes: (ids: readonly string[]) => void;
+    copyNotes: () => void;
+    pasteNotes: () => void;
+    onTogglePlayback?: () => void;
 };
 
 export function useNoteKeyboard({
@@ -22,6 +25,9 @@ export function useNoteKeyboard({
     commitMove,
     commitResize,
     deleteNotes,
+    copyNotes,
+    pasteNotes,
+    onTogglePlayback,
 }: Options) {
     return function handleEditorKeyDown(event: KeyboardEvent<HTMLDivElement>) {
         if (
@@ -34,6 +40,31 @@ export function useNoteKeyboard({
         )
             return;
         if (gestureModeRef.current !== 'idle') return;
+        if (
+            event.key === ' ' &&
+            !event.ctrlKey &&
+            !event.metaKey &&
+            !event.altKey &&
+            !event.shiftKey &&
+            onTogglePlayback
+        ) {
+            event.preventDefault();
+            if (event.repeat) return;
+            onTogglePlayback();
+            return;
+        }
+        if (
+            (event.ctrlKey || event.metaKey) &&
+            !event.altKey &&
+            !event.shiftKey &&
+            (event.key.toLowerCase() === 'c' || event.key.toLowerCase() === 'v')
+        ) {
+            if (event.repeat) return;
+            event.preventDefault();
+            if (event.key.toLowerCase() === 'c') copyNotes();
+            else pasteNotes();
+            return;
+        }
         if (event.key !== 'Delete' && !event.key.startsWith('Arrow')) return;
         const selected = Object.values(useNoteStore.getState().notes).filter(
             (note) => note.selected,

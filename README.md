@@ -25,6 +25,13 @@ Keyboard users can create a note with the New note pitch / Start tick form.
 Click a note to select it; Ctrl/Cmd-click toggles selection, and Ctrl/Cmd-drag
 empty grid replaces selection with overlapping notes. Shift-drag pans;
 Ctrl-wheel zooms. Arrow keys move the selection and Delete removes it.
+Space plays or pauses from the grid, selected-note overlay, or note list.
+Enter toggles a focused note-list button's selection.
+Ctrl/Cmd+C copies the selected notes within this tab. Ctrl/Cmd+V pastes
+after the current selection, or after the last paste when nothing is selected.
+The group starts at the next 120-tick grid boundary and keeps its internal
+spacing, pitches, durations, and velocities. New notes become the selection;
+if the whole group will not fit, the paste is rejected and announced.
 Drag a note's visible right edge, or use Shift+Left/Right, to resize the
 selection by a shared tick delta. Notes have a minimum duration of 120 ticks.
 Notes extending past a shortened timeline may be shortened but cannot be
@@ -37,8 +44,11 @@ The minimal brutalist theme uses square controls, locally bundled Barlow type,
 black/graphite surfaces, peach primary actions, and pink focus indicators.
 The [studio palette](docs/palette.md) documents colors and measured contrast.
 CSS tokens live in `src/styles/index.css`; canvas colors live
-in `rendering/colors.ts`. Selected notes also have an inset outline so selection
-does not rely on color alone.
+in `rendering/colors.ts`. Unselected notes have a thin inset border to separate
+adjacent notes; selected notes have a thicker outline. Black-key grid rows use
+a slightly lighter graphite background aligned with the pitch-reference keys.
+`usePlaybackControls` shares readiness notifications and the audio-start action
+between the playback button and the editor's Space shortcut.
 `usePianoSampler` creates a `Tone.Sampler` in an effect, keeps it in a ref, and
 disposes it on cleanup. Thirty Salamander Grand Piano MP3 samples are bundled
 in `public/audio/piano/` (about 2 MB), with attribution and the original README.

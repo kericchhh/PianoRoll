@@ -26,9 +26,15 @@ export function drawNote(
     context.fillStyle = fillStyle;
     context.fillRect(x, y, width, view.rowHeight);
 
-    if (note.selected) {
-        context.strokeStyle = PIANO_ROLL_COLORS.selectedOutline;
-        const strokeWidth = Math.min(2, width / 2, view.rowHeight / 2);
+    if (fillStyle !== PIANO_ROLL_COLORS.ghost) {
+        context.strokeStyle = note.selected
+            ? PIANO_ROLL_COLORS.selectedOutline
+            : PIANO_ROLL_COLORS.noteOutline;
+        const strokeWidth = Math.min(
+            note.selected ? 2 : 1,
+            width / 2,
+            view.rowHeight / 2,
+        );
         context.lineWidth = strokeWidth;
         context.strokeRect(
             x + strokeWidth / 2,

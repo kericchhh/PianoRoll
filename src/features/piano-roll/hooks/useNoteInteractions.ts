@@ -35,6 +35,7 @@ type Options = {
     onReveal?: (notes: readonly Note[]) => void;
     queryNotes?: (region: NoteRegion) => Note[];
     surfaceRef?: RefObject<HTMLDivElement | null>;
+    onTogglePlayback?: () => void;
 };
 
 export function useNoteInteractions({
@@ -50,6 +51,7 @@ export function useNoteInteractions({
     onReveal,
     queryNotes,
     surfaceRef,
+    onTogglePlayback,
 }: Options) {
     const [menuNoteId, SetMenuNoteId] = useState<string | null>(null);
     const suppressClickRef = useRef(false);
@@ -64,6 +66,8 @@ export function useNoteInteractions({
         addNote,
         deleteNote,
         deleteNotes,
+        copyNotes,
+        pasteNotes,
         commitMove,
         commitResize,
         announceSelection,
@@ -74,6 +78,9 @@ export function useNoteInteractions({
         commitMove,
         commitResize,
         deleteNotes,
+        copyNotes,
+        pasteNotes,
+        onTogglePlayback,
     });
     const { startMarquee, updateMarquee, resetMarquee } = useMarqueeSelection({
         canvasRef,

@@ -1,5 +1,48 @@
 import { expect, test } from '@playwright/test';
 
+test('holding Space on a note-list button toggles playback once without a native selection click', async ({
+    page,
+}) => {
+    await page.goto('/');
+    await page.evaluate(async () => {
+        const path = '/src/features/piano-roll/store/useNoteStore.ts';
+        const { useNoteStore } = (await import(
+            path
+        )) as typeof import('@/features/piano-roll/store/useNoteStore');
+        useNoteStore.setState({
+            notes: {
+                a: {
+                    id: 'a',
+                    pitch: 72,
+                    startTick: 0,
+                    durationTicks: 48000,
+                    velocity: 100,
+                    selected: true,
+                },
+            },
+        });
+    });
+    await expect(page.getByText('Piano ready', { exact: true })).toBeVisible();
+    const note = page.getByRole('button', { name: /Pitch 72, tick 0,/ });
+    await note.focus();
+    await page.keyboard.down('Space');
+    await page.keyboard.down('Space');
+    await page.keyboard.down('Space');
+    await page.keyboard.up('Space');
+    await expect(note).toHaveAttribute('aria-pressed', 'true');
+    await expect(note).toBeFocused();
+    await expect(
+        page.getByRole('button', { name: 'Pause', exact: true }),
+    ).toBeVisible();
+    await page.keyboard.press('Enter');
+    await expect(note).toHaveAttribute('aria-pressed', 'false');
+    await page.keyboard.press('Space');
+    await expect(note).toHaveAttribute('aria-pressed', 'false');
+    await expect(
+        page.getByRole('button', { name: 'Play', exact: true }),
+    ).toBeVisible();
+});
+
 test('pause releases held samples, resume reattacks, and completed playback can replay', async ({
     page,
 }) => {
@@ -125,9 +168,13 @@ test('pause releases held samples, resume reattacks, and completed playback can 
         });
     });
     const play = page.getByRole('button', { name: 'Play', exact: true });
+    const editor = page.getByRole('group', {
+        name: 'Piano roll editor',
+        exact: true,
+    });
     try {
-        await play.focus();
-        await page.keyboard.press('Enter');
+        await editor.focus();
+        await page.keyboard.press('Space');
         await expect(
             page.getByText('Loading piano samples…', { exact: true }),
         ).toBeVisible();
@@ -135,7 +182,7 @@ test('pause releases held samples, resume reattacks, and completed playback can 
         releaseSample();
     }
     await expect(page.getByText('Piano ready', { exact: true })).toBeVisible();
-    await expect(play).toBeFocused();
+    await expect(editor).toBeFocused();
     expect(
         await page.evaluate(
             () =>
@@ -143,6 +190,7 @@ test('pause releases held samples, resume reattacks, and completed playback can 
                     .__pianoSampleStarts ?? 0,
         ),
     ).toBe(0);
+    await play.focus();
     await page.keyboard.press('Enter');
     await expect
         .poll(() =>
@@ -170,8 +218,9 @@ test('pause releases held samples, resume reattacks, and completed playback can 
             (window as Window & { __pianoSampleReleases?: number })
                 .__pianoSampleReleases ?? 0,
     );
+    await editor.focus();
     await page.keyboard.press('Space');
-    await expect(play).toBeFocused();
+    await expect(editor).toBeFocused();
     await expect(play.locator('svg.lucide-play')).toHaveCount(1);
     await expect
         .poll(() =>
@@ -190,8 +239,12 @@ test('pause releases held samples, resume reattacks, and completed playback can 
                     .__pianoSampleStarts ?? 0,
         ),
     ).toBe(1);
-    await page.keyboard.press('Enter');
-    await expect(pause).toBeFocused();
+    const noteButton = page.getByRole('button', { name: /Pitch 60, tick 0,/ });
+    await noteButton.focus();
+    await page.keyboard.press('Space');
+    await expect(noteButton).toBeFocused();
+    await expect(noteButton).toHaveAttribute('aria-pressed', 'false');
+    await expect(pause).toBeVisible();
     await expect
         .poll(() =>
             page.evaluate(
@@ -212,9 +265,10 @@ test('pause releases held samples, resume reattacks, and completed playback can 
             { timeout: 7000 },
         )
         .toBe(3);
-    await expect(play).toBeFocused();
+    await expect(noteButton).toBeFocused();
     await expect(play.locator('svg.lucide-play')).toHaveCount(1);
-    await page.keyboard.press('Enter');
+    await play.focus();
+    await page.keyboard.press('Space');
     await expect(pause).toBeFocused();
     await expect
         .poll(() =>

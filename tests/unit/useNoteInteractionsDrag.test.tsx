@@ -12,6 +12,7 @@ import { useDrag } from '@use-gesture/react';
 import { useNoteInteractions } from '@/features/piano-roll/hooks/useNoteInteractions';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 import { PianoRollCanvas } from '@/features/piano-roll/components/PianoRollCanvas';
+import { PIANO_ROLL_COLORS } from '@/features/piano-roll/rendering/colors';
 import type { Note } from '@/features/piano-roll/types';
 
 vi.mock('@use-gesture/react', () => ({ useDrag: vi.fn(), useWheel: vi.fn() }));
@@ -236,7 +237,9 @@ test('all origin ghosts are drawn beneath the moving notes when their positions 
     );
     act(() => frame?.(0));
 
-    expect(rectangles).toEqual([
+    expect(
+        rectangles.filter(([color]) => color !== PIANO_ROLL_COLORS.blackKeyRow),
+    ).toEqual([
         ['#74666c', 60, 0],
         ['#74666c', 120, 20],
         ['#ffb18a', 120, 20],

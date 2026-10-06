@@ -19,6 +19,55 @@ function makeNote(id: string): Note {
 
 beforeEach(() => useNoteStore.setState({ notes: {} }));
 
+test('pasting replaces selection and inserts the entire group in one immutable update', () => {
+    const store = useNoteStore.getState();
+    store.addNote({ ...makeNote('a'), selected: true });
+    store.addNote(makeNote('b'));
+    const before = useNoteStore.getState().notes;
+    const pasted = [makeNote('c'), makeNote('d')];
+    const updates = vi.fn();
+    const unsubscribe = useNoteStore.subscribe(updates);
+
+    store.pasteNotes(pasted);
+    unsubscribe();
+
+    const after = useNoteStore.getState().notes;
+    expect(updates).toHaveBeenCalledTimes(1);
+    expect(after.a).toEqual({ ...before.a, selected: false });
+    expect(after.b).toBe(before.b);
+    expect(after.c).toEqual({ ...pasted[0], selected: true });
+    expect(after.d).toEqual({ ...pasted[1], selected: true });
+    expect(after.c).not.toBe(pasted[0]);
+    expect(pasted[0].selected).toBe(false);
+    expect(before.a.selected).toBe(true);
+    expect(
+        queryNoteIndex(createNoteIndex(after), {
+            startTick: 120,
+            endTick: 240,
+            lowestPitch: 60,
+            highestPitch: 60,
+        }).map((note) => note.id),
+    ).toEqual(['a', 'b', 'c', 'd']);
+});
+
+test('empty pastes and duplicate or existing IDs are rejected without changing selection', () => {
+    const store = useNoteStore.getState();
+    store.addNote({ ...makeNote('a'), selected: true });
+    const before = useNoteStore.getState();
+    const updates = vi.fn();
+    const unsubscribe = useNoteStore.subscribe(updates);
+    for (const pasted of [
+        [],
+        [makeNote('b'), makeNote('b')],
+        [makeNote('b'), makeNote('a')],
+    ]) {
+        store.pasteNotes(pasted);
+        expect(useNoteStore.getState()).toBe(before);
+    }
+    unsubscribe();
+    expect(updates).not.toHaveBeenCalled();
+});
+
 test('selects one note and deselects the previous selection', () => {
     const store = useNoteStore.getState();
     store.addNote(makeNote('a'));

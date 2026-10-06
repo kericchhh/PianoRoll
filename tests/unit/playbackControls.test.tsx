@@ -5,6 +5,14 @@ import userEvent from '@testing-library/user-event';
 import * as Tone from 'tone';
 import { toast } from 'sonner';
 import { PlaybackControls } from '@/features/piano-roll/components/PlaybackControls';
+import { usePlaybackControls } from '@/features/piano-roll/hooks/usePlaybackControls';
+
+function ControlsHarness(
+    props: Parameters<typeof usePlaybackControls>[0] & { isPlaying: boolean },
+) {
+    const handlePlay = usePlaybackControls(props);
+    return <PlaybackControls onPlay={handlePlay} isPlaying={props.isPlaying} />;
+}
 
 vi.mock('tone', () => ({ start: vi.fn() }));
 vi.mock('sonner', () => ({
@@ -21,7 +29,7 @@ test('Play remains keyboard operable before readiness and gives feedback without
     const user = userEvent.setup();
     const onPlay = vi.fn();
     render(
-        <PlaybackControls
+        <ControlsHarness
             isPlaying={false}
             samplesReady={false}
             onPlay={onPlay}
@@ -49,7 +57,7 @@ test('a readiness transition notifies once and only a subsequent Play action ena
     const user = userEvent.setup();
     const onPlay = vi.fn();
     const { rerender } = render(
-        <PlaybackControls
+        <ControlsHarness
             isPlaying={false}
             samplesReady={false}
             onPlay={onPlay}
@@ -57,10 +65,10 @@ test('a readiness transition notifies once and only a subsequent Play action ena
     );
     await user.click(screen.getByRole('button', { name: 'Play' }));
     rerender(
-        <PlaybackControls isPlaying={false} samplesReady onPlay={onPlay} />,
+        <ControlsHarness isPlaying={false} samplesReady onPlay={onPlay} />,
     );
     rerender(
-        <PlaybackControls isPlaying={false} samplesReady onPlay={onPlay} />,
+        <ControlsHarness isPlaying={false} samplesReady onPlay={onPlay} />,
     );
 
     expect(toast.success).toHaveBeenCalledTimes(1);
@@ -80,7 +88,7 @@ test('failed audio activation gives retry feedback and handles the rejected prom
     const user = userEvent.setup();
     const onPlay = vi.fn();
     vi.mocked(Tone.start).mockRejectedValue(new Error('Audio unavailable'));
-    render(<PlaybackControls isPlaying={false} samplesReady onPlay={onPlay} />);
+    render(<ControlsHarness isPlaying={false} samplesReady onPlay={onPlay} />);
     await user.click(screen.getByRole('button', { name: 'Play' }));
 
     await waitFor(() =>
@@ -99,14 +107,14 @@ test('a sample loading failure is announced and Play remains focusable with accu
     const user = userEvent.setup();
     const onPlay = vi.fn();
     const { rerender } = render(
-        <PlaybackControls
+        <ControlsHarness
             isPlaying={false}
             samplesReady={false}
             onPlay={onPlay}
         />,
     );
     rerender(
-        <PlaybackControls
+        <ControlsHarness
             isPlaying={false}
             samplesReady={false}
             samplesFailed
@@ -138,7 +146,7 @@ test('waits for audio activation to resolve before invoking playback', async () 
             enableAudio = resolve;
         }),
     );
-    render(<PlaybackControls isPlaying={false} samplesReady onPlay={onPlay} />);
+    render(<ControlsHarness isPlaying={false} samplesReady onPlay={onPlay} />);
     await user.click(screen.getByRole('button', { name: 'Play' }));
     expect(Tone.start).toHaveBeenCalledTimes(1);
     expect(onPlay).not.toHaveBeenCalled();

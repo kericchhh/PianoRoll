@@ -1,7 +1,6 @@
 import { memo } from 'react';
 import { ROW_HEIGHT } from '@/features/piano-roll/constants';
-
-const BLACK_KEYS = new Set([1, 3, 6, 8, 10]);
+import { isBlackKey } from '@/features/piano-roll/utils/isBlackKey';
 
 export const PianoKeys = memo(function PianoKeys({
     highestPitch,
@@ -15,7 +14,7 @@ export const PianoKeys = memo(function PianoKeys({
         <div className="piano-keys h-full overflow-hidden" aria-hidden="true">
             {Array.from({ length: rows }, (_, row) => {
                 const pitch = highestPitch - row;
-                const black = BLACK_KEYS.has(pitch % 12);
+                const black = isBlackKey(pitch);
                 return (
                     <div
                         key={pitch}

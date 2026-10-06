@@ -1,7 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { Note } from '@/features/piano-roll/types';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 import { snapTick } from '@/features/piano-roll/utils/snapTick';
+import {
+    pasteNoteGroup,
+    type CopiedNote,
+} from '@/features/piano-roll/utils/pasteNoteGroup';
 import {
     DEFAULT_NOTE_DURATION_TICKS,
     DEFAULT_NOTE_VELOCITY,
@@ -14,6 +18,8 @@ export function useNoteActions(
 ) {
     const [announcement, setAnnouncement] = useState({ text: '', sequence: 0 });
     const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+    const clipboardRef = useRef<readonly CopiedNote[]>([]);
+    const nextPasteTickRef = useRef(0);
     const announce = useCallback((text: string) => {
         setAnnouncement((previous) => ({
             text,
@@ -109,6 +115,78 @@ export function useNoteActions(
         [deleteNotes],
     );
 
+    const copyNotes = useCallback(() => {
+        const selected = Object.values(useNoteStore.getState().notes).filter(
+            (note) => note.selected,
+        );
+        if (selected.length === 0) {
+            announce('Select notes to copy');
+            return;
+        }
+        clipboardRef.current = selected.map(
+            ({ pitch, startTick, durationTicks, velocity }) => ({
+                pitch,
+                startTick,
+                durationTicks,
+                velocity,
+            }),
+        );
+        nextPasteTickRef.current = selected.reduce(
+            (end, note) => Math.max(end, note.startTick + note.durationTicks),
+            0,
+        );
+        announce(
+            `Copied ${selected.length} ${selected.length === 1 ? 'note' : 'notes'}`,
+        );
+    }, [announce]);
+
+    const pasteNotes = useCallback(() => {
+        if (clipboardRef.current.length === 0) {
+            announce('No copied notes to paste');
+            return;
+        }
+        const store = useNoteStore.getState();
+        const selected = Object.values(store.notes).filter(
+            (note) => note.selected,
+        );
+        const targetTick =
+            selected.length > 0
+                ? selected.reduce(
+                      (end, note) =>
+                          Math.max(end, note.startTick + note.durationTicks),
+                      0,
+                  )
+                : nextPasteTickRef.current;
+        const placed = pasteNoteGroup(
+            clipboardRef.current,
+            targetTick,
+            endTick,
+        );
+        if (!placed) {
+            announce('Cannot paste: copied notes do not fit in the timeline');
+            return;
+        }
+        const pasted: Note[] = placed.map((note) => ({
+            ...note,
+            id: crypto.randomUUID(),
+            selected: true,
+        }));
+        store.pasteNotes(pasted);
+        nextPasteTickRef.current = pasted.reduce(
+            (end, note) => Math.max(end, note.startTick + note.durationTicks),
+            0,
+        );
+        setActiveNoteId(pasted[0].id);
+        onReveal?.(pasted);
+        const firstTick = pasted.reduce(
+            (tick, note) => Math.min(tick, note.startTick),
+            Infinity,
+        );
+        announce(
+            `Pasted ${pasted.length} ${pasted.length === 1 ? 'note' : 'notes'} at tick ${firstTick}`,
+        );
+    }, [announce, endTick, onReveal]);
+
     const commitMove = useCallback(
         (originals: readonly Note[], moved: readonly Note[]) => {
             if (moved === originals || moved.length === 0) return;
@@ -167,6 +245,8 @@ export function useNoteActions(
         addNote,
         deleteNote,
         deleteNotes,
+        copyNotes,
+        pasteNotes,
         commitMove,
         commitResize,
     };
