@@ -73,9 +73,8 @@ export function useNoteActions(
                 selected,
             };
             const store = useNoteStore.getState();
-            store.addNote(note);
+            store.addNote(note, selected);
             if (selected) {
-                store.selectNote(note.id);
                 setActiveNoteId(note.id);
                 onReveal?.([note]);
             }
@@ -167,6 +166,7 @@ export function useNoteActions(
     );
 
     return {
+        announce,
         announcement,
         activeNoteId,
         activateNote: setActiveNoteId,

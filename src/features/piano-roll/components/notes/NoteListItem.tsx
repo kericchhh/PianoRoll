@@ -13,6 +13,7 @@ export const NoteListItem = memo(function NoteListItem({
         <li>
             <Button
                 type="button"
+                data-note-id={note.id}
                 variant="ghost"
                 aria-pressed={note.selected}
                 className="h-auto justify-start whitespace-normal text-left"

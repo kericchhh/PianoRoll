@@ -21,7 +21,7 @@ const note: Note = {
     velocity: 100,
 };
 beforeEach(() => {
-    useNoteStore.setState({ notes: {} });
+    useNoteStore.setState(useNoteStore.getInitialState());
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
 });
 afterEach(() => {

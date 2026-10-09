@@ -258,6 +258,8 @@ test.each<GestureMode>(['move', 'resize', 'pan', 'marquee', 'select'])(
                 deleteNotes: vi.fn(),
                 copyNotes,
                 pasteNotes,
+                undo: vi.fn(),
+                redo: vi.fn(),
             });
             return (
                 <div

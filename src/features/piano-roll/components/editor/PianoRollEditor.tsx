@@ -12,6 +12,7 @@ import { TimelineLengthSelect } from '@/features/piano-roll/components/toolbar/T
 import { NoteInsertionForm } from '@/features/piano-roll/components/notes/NoteInsertionForm';
 import { PlayheadCanvas } from '@/features/piano-roll/components/playback/PlayheadCanvas';
 import type { PlaybackState } from '@/features/piano-roll/audio/playbackTypes';
+import { HistoryControls } from '@/features/piano-roll/components/toolbar/HistoryControls';
 
 type Props = {
     playbackControls?: ReactNode;
@@ -38,6 +39,13 @@ export function PianoRollEditor({
             aria-label="Piano roll workspace"
         >
             <EditorHeader
+                historyControls={
+                    <HistoryControls
+                        onUndo={editor.interactions.undo}
+                        onRedo={editor.interactions.redo}
+                        onKeyDown={editor.interactions.handleEditorKeyDown}
+                    />
+                }
                 playbackControls={playbackControls}
                 playbackWaveform={playbackWaveform}
                 timeline={

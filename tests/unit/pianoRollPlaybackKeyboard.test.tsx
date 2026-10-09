@@ -175,6 +175,8 @@ test.each<GestureMode>(['move', 'resize', 'pan', 'marquee', 'select'])(
                 deleteNotes: vi.fn(),
                 copyNotes: vi.fn(),
                 pasteNotes: vi.fn(),
+                undo: vi.fn(),
+                redo: vi.fn(),
                 onTogglePlayback,
             });
             return (

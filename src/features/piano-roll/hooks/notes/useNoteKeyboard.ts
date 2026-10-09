@@ -16,6 +16,8 @@ type Options = {
     deleteNotes: (ids: readonly string[]) => void;
     copyNotes: () => void;
     pasteNotes: () => void;
+    undo: () => void;
+    redo: () => void;
     onTogglePlayback?: () => void;
 };
 
@@ -27,6 +29,8 @@ export function useNoteKeyboard({
     deleteNotes,
     copyNotes,
     pasteNotes,
+    undo,
+    redo,
     onTogglePlayback,
 }: Options) {
     return function handleEditorKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -40,6 +44,17 @@ export function useNoteKeyboard({
         )
             return;
         if (gestureModeRef.current !== 'idle') return;
+        if (
+            (event.ctrlKey || event.metaKey) &&
+            !event.altKey &&
+            event.key.toLowerCase() === 'z'
+        ) {
+            event.preventDefault();
+            if (event.repeat) return;
+            if (event.shiftKey) redo();
+            else undo();
+            return;
+        }
         if (
             event.key === ' ' &&
             !event.ctrlKey &&

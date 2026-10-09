@@ -9,6 +9,7 @@ import { useNoteActions } from '@/features/piano-roll/hooks/notes/useNoteActions
 import { useNoteKeyboard } from '@/features/piano-roll/hooks/notes/useNoteKeyboard';
 import { useNoteDrag } from '@/features/piano-roll/hooks/notes/useNoteDrag';
 import { useNotePointerDown } from '@/features/piano-roll/hooks/notes/useNotePointerDown';
+import { useNoteHistory } from '@/features/piano-roll/hooks/notes/useNoteHistory';
 
 export function useNoteInteractions(options: NoteInteractionOptions) {
     const {
@@ -29,6 +30,7 @@ export function useNoteInteractions(options: NoteInteractionOptions) {
     const gestureModeRef = useRef<GestureMode>('idle');
     const dragScaleRef = useRef({ x: 1, y: 1 });
     const {
+        announce,
         announcement,
         activeNoteId,
         activateNote,
@@ -42,7 +44,17 @@ export function useNoteInteractions(options: NoteInteractionOptions) {
         commitResize,
         announceSelection,
     } = useNoteActions(endTick, onReveal);
+    const history = useNoteHistory({
+        gestureModeRef,
+        editorRef: options.editorRef,
+        activeNoteId,
+        onActivate: activateNote,
+        onReveal,
+        announce,
+    });
     const handleEditorKeyDown = useNoteKeyboard({
+        undo: history.undo,
+        redo: history.redo,
         endTick,
         gestureModeRef,
         commitMove,
@@ -147,6 +159,8 @@ export function useNoteInteractions(options: NoteInteractionOptions) {
     }
 
     return {
+        undo: history.undo,
+        redo: history.redo,
         menuNoteId,
         handleCanvasContextMenu,
         handleCanvasClick,

@@ -19,6 +19,7 @@ export type NoteInteractionOptions = {
     onReveal?: (notes: readonly Note[]) => void;
     queryNotes?: (region: NoteRegion) => Note[];
     surfaceRef?: RefObject<HTMLDivElement | null>;
+    editorRef?: RefObject<HTMLDivElement | null>;
     onTogglePlayback?: () => void;
 };
 

@@ -1,3 +1,5 @@
+import type { NoteCommand } from '@/features/piano-roll/store/commands/types';
+
 export interface Note {
     id: string;
     pitch: number;
@@ -9,7 +11,11 @@ export interface Note {
 
 export interface NoteStoreState {
     notes: Record<string, Note>;
-    addNote: (note: Note) => void;
+    undoStack: readonly NoteCommand[];
+    redoStack: readonly NoteCommand[];
+    undo: () => NoteCommand | null;
+    redo: () => NoteCommand | null;
+    addNote: (note: Note, selectAdded?: boolean) => void;
     pasteNotes: (notes: readonly Note[]) => void;
     selectNote: (id: string) => void;
     selectNotes: (ids: readonly string[]) => void;

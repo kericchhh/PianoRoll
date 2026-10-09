@@ -59,6 +59,7 @@ export function usePianoRollEditor(
         [reveal, requestRedraw],
     );
     const interactions = useNoteInteractions({
+        editorRef: viewport.editorRef,
         canvasRef,
         getView,
         width,

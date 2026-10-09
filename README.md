@@ -1,15 +1,15 @@
 # Piano Roll
 
 Client-side MIDI note editor, built incrementally with React, TypeScript, Zustand,
-Canvas 2D, use-gesture, and shadcn/ui with Radix primitives. Playback is the current
-learning milestone; MIDI I/O and persistence are later milestones.
+Canvas 2D, use-gesture, and shadcn/ui with Radix primitives. Playback and command-based
+undo/redo are implemented; MIDI I/O and persistence are later milestones.
 
 The workspace fills the browser viewport, with pitch-reference keys on the left,
 tools and note insertion across the top, playback at the upper right, and a
 blank panel reserved beside the grid. Canvas dimensions follow the available
 panel size; pitch rows stay 20 CSS pixels high. Below 1024 pixels wide, the right
 panel hides and playback moves below the tools to give the grid more room.
-Unfinished history, MIDI, save, transport, tempo, and Mix / FX controls are
+Unfinished MIDI, save, transport, tempo, and Mix / FX controls are
 represented by empty, static placeholders without labels or mock controls.
 The keys are visual pitch references;
 they do not audition notes yet.
@@ -37,6 +37,17 @@ selection by a shared tick delta. Notes have a minimum duration of 120 ticks.
 Notes extending past a shortened timeline may be shortened but cannot be
 extended further; resizing does not force them inside the timeline.
 Movement reveals the selection without changing the stored MIDI coordinates.
+
+Ctrl/Cmd+Z undoes the last note edit; Ctrl/Cmd+Shift+Z redoes it. Toolbar Undo and
+Redo use the same actions. Each insertion, group move, resize, deletion, or paste
+creates one reversible command. Drag previews stay outside history and commit once
+on release. Two Zustand stacks retain affected-note data and before/after selection
+IDs, rather than full project snapshots. Undo/redo restores that selection, keeps
+note IDs and drawing order, reveals the restored selection, and announces the result.
+Selection-only changes and no-op edits preserve history; new edits clear redo.
+Shortcuts respect editable controls, menus, key-repeat guards, and active gestures.
+If a focused note disappears, focus returns to the editor. History stays in memory
+for this tab and is not saved across reloads.
 
 Shared controls live in `src/shared/components/ui/`; `components.json` directs
 the shadcn CLI to that folder. Sonner notifications use one app-level Toaster.
@@ -111,7 +122,8 @@ disabled, run `npm run prepare` separately. Hooks never stage the entire reposit
 - `rendering/`: drawing passes grouped into `grid/`, `notes/`, and `playback/`,
   with shared colors at the root.
 - `utils/`: grouped into `coordinates/`, `notes/`, `time/`, and `viewport/`.
-- `store/`: normalized note data and atomic group edits.
+- `store/`: normalized note data, selection, and undo/redo stacks; `commands/`
+  owns typed command payloads, creation, and pure forward/reverse application.
 
 The note index is derived from the immutable notes record, not stored in Zustand.
 Per-pitch start ordering and prefix maximum endpoints preserve long-note overlaps;

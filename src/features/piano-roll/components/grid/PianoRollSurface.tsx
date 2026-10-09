@@ -36,7 +36,7 @@ export function PianoRollSurface({
             role="group"
             aria-label="Piano roll editor"
             aria-describedby={instructionsId}
-            aria-keyshortcuts="Space Control+c Meta+c Control+v Meta+v"
+            aria-keyshortcuts="Space Control+c Meta+c Control+v Meta+v Control+z Meta+z Control+Shift+z Meta+Shift+z"
             tabIndex={0}
             onKeyDown={interactions.handleEditorKeyDown}
             className="group relative min-h-0 min-w-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"

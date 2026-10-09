@@ -17,7 +17,7 @@ function makeNote(id: string): Note {
     };
 }
 
-beforeEach(() => useNoteStore.setState({ notes: {} }));
+beforeEach(() => useNoteStore.setState(useNoteStore.getInitialState()));
 
 test('pasting replaces selection and inserts the entire group in one immutable update', () => {
     const store = useNoteStore.getState();
