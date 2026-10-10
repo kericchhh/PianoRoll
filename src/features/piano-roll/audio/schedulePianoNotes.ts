@@ -2,7 +2,10 @@ import * as Tone from 'tone';
 import type { RefObject } from 'react';
 import type { Note } from '@/features/piano-roll/types';
 import { PPQ } from '@/features/piano-roll/constants';
-import { getPlaybackReleases } from '@/features/piano-roll/utils/notes/playbackNotes';
+import {
+    getAudibleNotes,
+    getPlaybackReleases,
+} from '@/features/piano-roll/utils/notes/playbackNotes';
 import { tickToSeconds } from '@/features/piano-roll/utils/time/tickToSeconds';
 
 type Options = {
@@ -38,7 +41,7 @@ export function schedulePianoNotes({
             ),
         );
     }
-    for (const note of notes) {
+    for (const note of getAudibleNotes(notes)) {
         ids.push(
             transport.schedule(
                 (time) => {

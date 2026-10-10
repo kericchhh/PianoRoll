@@ -29,6 +29,8 @@ export function PianoRollMain({
                     highestPitch={editor.viewport.highestPitch}
                     height={editor.viewport.height}
                     onPreview={onPreviewPitch}
+                    onScrollPitch={editor.viewport.scrollPitch}
+                    gestureModeRef={editor.interactions.gestureModeRef}
                 />
             </div>
             <PianoRollSurface editor={editor} playhead={playhead} />

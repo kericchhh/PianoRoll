@@ -74,3 +74,15 @@ test('a preexisting note below the minimum is not lengthened by a shortening req
     expect(resizeNoteGroup(short, -120, 960)).toBe(short);
     expect(resizeNoteGroup(short, 0, 960)).toBe(short);
 });
+
+test('a short imported note can grow to the editing minimum with a shared group delta', () => {
+    const group = [{ ...notes[0], durationTicks: 13 }, notes[1]];
+    expect(
+        resizeNoteGroup(group, 1, 960).map((note) => note.durationTicks),
+    ).toEqual([120, 347]);
+    expect(
+        resizeNoteGroup(group, 120, 960).map((note) => note.durationTicks),
+    ).toEqual([133, 360]);
+    expect(resizeNoteGroup(group, 1, 130)).toBe(group);
+    expect(resizeNoteGroup(group, -120, 960)).toBe(group);
+});

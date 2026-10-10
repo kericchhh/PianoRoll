@@ -17,6 +17,12 @@ function note(id: string, fields: Partial<Note> = {}): Note {
     };
 }
 
+test('rejects tick values that would overflow the MIDI writer’s variable-length integer', () => {
+    expect(() =>
+        serializeMidi([note('huge', { startTick: 2400000000 })], 120),
+    ).toThrow(/invalid note data/);
+});
+
 function musicalNotes(notes: readonly Note[]) {
     return notes
         .map(({ pitch, startTick, durationTicks, velocity }) => ({

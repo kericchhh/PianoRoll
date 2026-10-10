@@ -2,6 +2,7 @@ import { Midi } from '@tonejs/midi';
 import type { Note } from '@/features/piano-roll/types';
 import { BEATS_PER_BAR, PPQ } from '@/features/piano-roll/constants';
 import { groupMidiNotes } from './groupMidiNotes';
+import { isValidMidiNote } from './isValidMidiNote';
 
 export type MidiExport = {
     bytes: Uint8Array;
@@ -9,27 +10,11 @@ export type MidiExport = {
     omittedNoteCount: number;
 };
 
-function validateNote(note: Note): void {
-    if (
-        !Number.isInteger(note.pitch) ||
-        note.pitch < 0 ||
-        note.pitch > 127 ||
-        !Number.isSafeInteger(note.startTick) ||
-        note.startTick < 0 ||
-        !Number.isSafeInteger(note.durationTicks) ||
-        note.durationTicks <= 0 ||
-        !Number.isSafeInteger(note.startTick + note.durationTicks) ||
-        !Number.isInteger(note.velocity) ||
-        note.velocity < 0 ||
-        note.velocity > 127
-    )
-        throw new RangeError('Cannot export invalid note data.');
-}
-
 export function serializeMidi(notes: readonly Note[], bpm: number): MidiExport {
     if (!Number.isFinite(bpm) || bpm <= 0)
         throw new RangeError('Cannot export an invalid tempo.');
-    for (const note of notes) validateNote(note);
+    if (notes.some((note) => !isValidMidiNote(note)))
+        throw new RangeError('Cannot export invalid note data.');
     const audible = notes.filter((note) => note.velocity > 0);
     const groups = groupMidiNotes(audible);
     const midi = new Midi();

@@ -9,6 +9,7 @@ import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 const COMMAND_NAMES: Record<NoteCommand['type'], string> = {
     ADD_NOTE: 'addition',
     PASTE_NOTES: 'paste',
+    IMPORT_NOTES: 'MIDI import',
     DELETE_NOTES: 'deletion',
     MOVE_NOTES: 'move',
     RESIZE_NOTES: 'resize',

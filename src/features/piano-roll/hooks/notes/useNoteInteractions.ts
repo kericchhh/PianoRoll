@@ -172,6 +172,8 @@ export function useNoteInteractions(options: NoteInteractionOptions) {
         announcement,
         activeNoteId,
         handleCanvasPointerDown,
+        announce,
+        activateNote,
         gestureModeRef,
         dragScaleRef,
     };

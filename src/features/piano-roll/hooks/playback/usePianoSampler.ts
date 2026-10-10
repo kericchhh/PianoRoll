@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Tone from 'tone';
 import { PIANO_SAMPLE_URLS } from '@/features/piano-roll/audio/pianoSamples';
+import type { CustomInstrument } from '@/features/piano-roll/audio/customInstrument';
 
-export function usePianoSampler() {
+export function usePianoSampler(sample: CustomInstrument | null = null) {
     const samplerRef = useRef<Tone.Sampler | null>(null);
     const previewSamplerRef = useRef<Tone.Sampler | null>(null);
     const buffersRef = useRef<Record<string, Tone.ToneAudioBuffer> | null>(
@@ -23,28 +24,36 @@ export function usePianoSampler() {
         }
         return previewSamplerRef.current;
     }, []);
-    const [sampleStatus, setSampleStatus] = useState<
-        'loading' | 'ready' | 'error'
-    >('loading');
+    const [sampleStatus, setSampleStatus] = useState<{
+        source: CustomInstrument | null;
+        state: 'loading' | 'ready' | 'error';
+    }>({ source: sample, state: 'loading' });
 
     useEffect(() => {
         let active = true;
         const onerror = () => {
-            if (active) setSampleStatus('error');
+            if (active) setSampleStatus({ source: sample, state: 'error' });
         };
         const baseUrl = `${import.meta.env.BASE_URL}audio/piano/`;
-        const buffers = Object.fromEntries(
-            Object.entries(PIANO_SAMPLE_URLS).map(([pitch, url]) => [
-                pitch,
-                new Tone.ToneAudioBuffer({ url: baseUrl + url, onerror }),
-            ]),
-        );
+        const buffers = sample
+            ? Object.fromEntries(
+                  sample.samples.map(({ rootPitch, buffer }) => [
+                      String(rootPitch),
+                      new Tone.ToneAudioBuffer(buffer),
+                  ]),
+              )
+            : Object.fromEntries(
+                  Object.entries(PIANO_SAMPLE_URLS).map(([pitch, url]) => [
+                      pitch,
+                      new Tone.ToneAudioBuffer({ url: baseUrl + url, onerror }),
+                  ]),
+              );
         const sampler = new Tone.Sampler({
             urls: buffers,
             baseUrl,
             release: 1,
             onload: () => {
-                if (active) setSampleStatus('ready');
+                if (active) setSampleStatus({ source: sample, state: 'ready' });
             },
             onerror,
         }).toDestination();
@@ -65,13 +74,15 @@ export function usePianoSampler() {
             waveform.dispose();
             for (const buffer of Object.values(buffers)) buffer.dispose();
         };
-    }, []);
+    }, [sample]);
 
     return {
         samplerRef,
         getPreviewSampler,
         getWaveformSamples,
-        samplesReady: sampleStatus === 'ready',
-        samplesFailed: sampleStatus === 'error',
+        samplesReady:
+            sampleStatus.source === sample && sampleStatus.state === 'ready',
+        samplesFailed:
+            sampleStatus.source === sample && sampleStatus.state === 'error',
     };
 }

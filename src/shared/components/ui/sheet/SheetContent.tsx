@@ -33,7 +33,7 @@ export function SheetContent({ open, className, children, ...props }: Props) {
                         <motion.div
                             data-slot="sheet-content"
                             className={cn(
-                                'fixed inset-y-0 left-0 z-50 flex w-80 max-w-full flex-col overflow-y-auto border-r-2 border-border bg-secondary text-foreground',
+                                'fixed inset-y-0 left-0 z-50 flex w-80 max-w-full flex-col overflow-hidden border-r-2 border-border bg-secondary text-foreground',
                                 className,
                             )}
                             initial={{ x: reducedMotion ? 0 : '-100%' }}

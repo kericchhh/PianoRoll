@@ -13,6 +13,11 @@ import type { Note } from '@/features/piano-roll/types';
 import type { PlaybackState } from '@/features/piano-roll/audio/playbackTypes';
 import { schedulePianoNotes } from '@/features/piano-roll/audio/schedulePianoNotes';
 import {
+    clearPlaybackEvents,
+    invalidatePlaybackCompletion,
+    type PlaybackCompletion,
+} from '@/features/piano-roll/audio/playbackSession';
+import {
     getNotesToRetrigger,
     getPlaybackEndTick,
 } from '@/features/piano-roll/utils/notes/playbackNotes';
@@ -22,10 +27,14 @@ export function usePlayback(samplerRef: RefObject<Tone.Sampler | null>) {
         useState<PlaybackState>('stopped');
     const scheduledIdRef = useRef<number[]>([]);
     const playbackNotesRef = useRef<readonly Note[]>([]);
-    const finishRef = useRef<{
-        timeoutId: number | null;
-        generation: number;
-    }>({ timeoutId: null, generation: 0 });
+    const finishRef = useRef<PlaybackCompletion>({
+        timeoutId: null,
+        generation: 0,
+    });
+    const getPlaybackGeneration = useCallback(
+        () => finishRef.current.generation,
+        [],
+    );
 
     const getPlaybackTick = useCallback((): number => {
         const transport = Tone.getTransport();
@@ -34,6 +43,17 @@ export function usePlayback(samplerRef: RefObject<Tone.Sampler | null>) {
         return transportTick * (PPQ / transport.PPQ);
     }, []);
 
+    const stopPlayback = useCallback(() => {
+        const finish = finishRef.current;
+        invalidatePlaybackCompletion(finish, Tone.getContext());
+        const transport = Tone.getTransport();
+        transport.stop();
+        clearPlaybackEvents(scheduledIdRef.current, transport);
+        playbackNotesRef.current = [];
+        samplerRef.current?.releaseAll(Tone.now());
+        setPlaybackState('stopped');
+    }, [samplerRef]);
+
     useEffect(() => {
         const transport = Tone.getTransport();
         const context = Tone.getContext();
@@ -41,14 +61,9 @@ export function usePlayback(samplerRef: RefObject<Tone.Sampler | null>) {
         const finish = finishRef.current;
 
         return () => {
-            finish.generation++;
-            if (finish.timeoutId !== null) {
-                context.clearTimeout(finish.timeoutId);
-                finish.timeoutId = null;
-            }
+            invalidatePlaybackCompletion(finish, context);
             transport.stop();
-            for (const id of scheduledIds) transport.clear(id);
-            scheduledIds.length = 0;
+            clearPlaybackEvents(scheduledIds, transport);
         };
     }, []);
 
@@ -58,11 +73,7 @@ export function usePlayback(samplerRef: RefObject<Tone.Sampler | null>) {
         const transport = Tone.getTransport();
         const context = Tone.getContext();
         const finish = finishRef.current;
-        finish.generation++;
-        if (finish.timeoutId !== null) {
-            context.clearTimeout(finish.timeoutId);
-            finish.timeoutId = null;
-        }
+        invalidatePlaybackCompletion(finish, context);
         const time = Tone.now();
 
         if (transport.state !== 'stopped') {
@@ -71,8 +82,7 @@ export function usePlayback(samplerRef: RefObject<Tone.Sampler | null>) {
             if (positionTick >= getPlaybackEndTick(playbackNotesRef.current)) {
                 transport.stop(time);
                 sampler.releaseAll(time);
-                for (const id of scheduledIdRef.current) transport.clear(id);
-                scheduledIdRef.current.length = 0;
+                clearPlaybackEvents(scheduledIdRef.current, transport);
                 playbackNotesRef.current = [];
                 setPlaybackState('stopped');
                 return;
@@ -100,8 +110,7 @@ export function usePlayback(samplerRef: RefObject<Tone.Sampler | null>) {
             setPlaybackState('paused');
             return;
         }
-        for (const id of scheduledIdRef.current) transport.clear(id);
-        scheduledIdRef.current.length = 0;
+        clearPlaybackEvents(scheduledIdRef.current, transport);
         const bpm = transport.bpm.value;
         const notes = Object.values(useNoteStore.getState().notes);
         playbackNotesRef.current = notes;
@@ -143,9 +152,7 @@ export function usePlayback(samplerRef: RefObject<Tone.Sampler | null>) {
                         finish.timeoutId = null;
                         finish.generation++;
                         transport.stop(endTime);
-                        for (const id of scheduledIdRef.current)
-                            transport.clear(id);
-                        scheduledIdRef.current.length = 0;
+                        clearPlaybackEvents(scheduledIdRef.current, transport);
                         playbackNotesRef.current = [];
                         setPlaybackState('stopped');
                     },
@@ -163,6 +170,8 @@ export function usePlayback(samplerRef: RefObject<Tone.Sampler | null>) {
         isPlaying: playbackState === 'playing',
         playbackState,
         togglePlayback,
+        stopPlayback,
         getPlaybackTick,
+        getPlaybackGeneration,
     };
 }

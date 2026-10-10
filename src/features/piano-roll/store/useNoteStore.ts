@@ -9,6 +9,7 @@ import {
 } from './commands/createNoteCommand';
 import { executeNoteCommand, stepNoteHistory } from './noteHistory';
 import { selectNotesInRecord } from './noteSelection';
+import { createImportNotesCommand } from './commands/createImportNotesCommand';
 
 export const useNoteStore = create<NoteStoreState>()((set, get) => {
     function step(direction: HistoryDirection) {
@@ -27,6 +28,13 @@ export const useNoteStore = create<NoteStoreState>()((set, get) => {
         redoStack: [],
         undo: () => step('undo'),
         redo: () => step('redo'),
+        importNotes: (notes) =>
+            set((state) =>
+                executeNoteCommand(
+                    state,
+                    createImportNotesCommand(state.notes, notes),
+                ),
+            ),
         addNote: (note, selectAdded = false) =>
             set((state) =>
                 executeNoteCommand(

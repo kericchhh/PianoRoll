@@ -4,6 +4,7 @@ import {
     getNotesToRetrigger,
     getPlaybackEndTick,
     getPlaybackReleases,
+    getAudibleNotes,
 } from '@/features/piano-roll/utils/notes/playbackNotes';
 
 const base: Note = {
@@ -14,6 +15,23 @@ const base: Note = {
     velocity: 100,
     selected: false,
 };
+
+test('silent notes neither extend audible release groups nor retrigger, but retain composition duration', () => {
+    const notes = [
+        { ...base, startTick: 0, durationTicks: 120 },
+        {
+            ...base,
+            id: 'silent',
+            startTick: 60,
+            durationTicks: 420,
+            velocity: 0,
+        },
+    ];
+    expect(getAudibleNotes(notes)).toEqual([notes[0]]);
+    expect(getPlaybackReleases(notes)).toEqual([{ pitch: 60, endTick: 120 }]);
+    expect(getNotesToRetrigger(notes, 240)).toEqual([]);
+    expect(getPlaybackEndTick(notes)).toBe(480);
+});
 
 test('an empty project ends at zero and has nothing to retrigger', () => {
     expect(getPlaybackEndTick([])).toBe(0);

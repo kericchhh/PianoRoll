@@ -1,5 +1,9 @@
 import type { Note } from '@/features/piano-roll/types';
 
+export function getAudibleNotes(notes: readonly Note[]): Note[] {
+    return notes.filter((note) => note.velocity > 0);
+}
+
 export function getPlaybackEndTick(notes: readonly Note[]): number {
     return notes.reduce(
         (endTick, note) =>
@@ -11,7 +15,7 @@ export function getPlaybackEndTick(notes: readonly Note[]): number {
 export function getPlaybackReleases(
     notes: readonly Note[],
 ): { pitch: number; endTick: number }[] {
-    const ordered = [...notes].sort(
+    const ordered = getAudibleNotes(notes).sort(
         (a, b) => a.pitch - b.pitch || a.startTick - b.startTick,
     );
     const releases: { pitch: number; endTick: number }[] = [];
@@ -34,7 +38,7 @@ export function getNotesToRetrigger(
     notes: readonly Note[],
     positionTick: number,
 ): Note[] {
-    return notes
+    return getAudibleNotes(notes)
         .filter(
             (note) =>
                 note.startTick < positionTick &&

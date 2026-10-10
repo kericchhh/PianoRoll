@@ -4,6 +4,7 @@ import { clampScroll } from '@/features/piano-roll/utils/viewport/clampScroll';
 import { clampScale } from '@/features/piano-roll/utils/viewport/clampScale';
 import { revealNotes } from '@/features/piano-roll/utils/viewport/revealNotes';
 import { useElementSize } from '@/shared/hooks/useElementSize';
+import { clampHighestPitch } from '@/features/piano-roll/utils/viewport/pitchScroll';
 import {
     INITIAL_HIGHEST_PITCH,
     ROW_HEIGHT,
@@ -35,7 +36,9 @@ export function usePianoRollViewport(endTick: number) {
         (notes: readonly Note[]) => {
             const view = revealNotes(notes, getView(), width, height, endTick);
             scrollRef.current = view.scrollOffsetX;
-            setHighestPitch(view.highestVisiblePitch);
+            setHighestPitch(
+                clampHighestPitch(view.highestVisiblePitch, height),
+            );
         },
         [endTick, getView, height, width],
     );
@@ -48,7 +51,17 @@ export function usePianoRollViewport(endTick: number) {
             scaleRef.current,
             width,
         );
-    }, [endTick, width]);
+        setHighestPitch((previous) => clampHighestPitch(previous, height));
+    }, [endTick, height, width]);
+
+    const scrollPitch = useCallback(
+        (rows: number) => {
+            setHighestPitch((previous) =>
+                clampHighestPitch(previous + rows, height),
+            );
+        },
+        [height],
+    );
 
     return {
         editorRef,
@@ -60,5 +73,6 @@ export function usePianoRollViewport(endTick: number) {
         getView,
         reveal,
         clamp,
+        scrollPitch,
     };
 }

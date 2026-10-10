@@ -27,6 +27,7 @@ function setup(initialState: PlaybackState = 'playing') {
         height: 400,
         reveal: vi.fn(),
         clamp: vi.fn(),
+        scrollPitch: vi.fn(),
         getView: () => ({
             pixelsPerTick: scaleRef.current,
             scrollOffsetX: scrollRef.current,

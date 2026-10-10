@@ -29,6 +29,13 @@ export function applyNoteCommand(
 ): Record<string, Note> {
     let notes = { ...current };
     switch (command.type) {
+        case 'IMPORT_NOTES':
+            notes = Object.fromEntries(
+                (phase === 'do' ? command.notes : command.removed).map(
+                    (note) => [note.id, { ...note }],
+                ),
+            );
+            break;
         case 'ADD_NOTE':
         case 'PASTE_NOTES':
             for (const note of command.notes) {

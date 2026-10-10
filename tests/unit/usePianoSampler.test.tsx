@@ -16,6 +16,7 @@ import { App } from '@/app/App';
 import { usePianoSampler } from '@/features/piano-roll/hooks/playback/usePianoSampler';
 import { usePlayback } from '@/features/piano-roll/hooks/playback/usePlayback';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
+import type { CustomInstrument } from '@/features/piano-roll/audio/customInstrument';
 
 const {
     samplers,
@@ -264,6 +265,123 @@ test('reports a sample loading failure without claiming readiness', () => {
     expect(result.current.samplesReady).toBe(false);
     expect(result.current.samplesFailed).toBe(true);
     expect(Tone.start).not.toHaveBeenCalled();
+});
+
+test('instrument replacement disposes old playback and preview voices, shares one decoded sample and ignores stale readiness', () => {
+    const { result, rerender, unmount } = renderHook(
+        ({ sample }) => usePianoSampler(sample),
+        { initialProps: { sample: null as CustomInstrument | null } },
+    );
+    const piano = samplers[0];
+    act(() => piano.options.onload?.());
+    const preview = result.current.getPreviewSampler();
+    const buffer = {
+        duration: 1,
+        length: 44100,
+        numberOfChannels: 1,
+    } as AudioBuffer;
+    const custom = {
+        name: 'violin.wav',
+        samples: [{ name: 'violin.wav', rootPitch: 60, buffer }],
+    };
+    rerender({ sample: custom });
+    expect(piano.dispose).toHaveBeenCalledOnce();
+    expect(preview?.dispose).toHaveBeenCalledOnce();
+    expect(waveforms[0].dispose).toHaveBeenCalledOnce();
+    expect(Tone.ToneAudioBuffer).toHaveBeenLastCalledWith(buffer);
+    const current = samplers[2];
+    expect(Object.keys(current.options.urls ?? {})).toEqual(['60']);
+    expect(result.current.samplesReady).toBe(false);
+    act(() => {
+        piano.options.onload?.();
+        piano.options.onerror?.(new Error('late'));
+    });
+    expect(result.current.samplesReady).toBe(false);
+    expect(result.current.samplesFailed).toBe(false);
+    act(() => current.options.onload?.());
+    expect(result.current.samplesReady).toBe(true);
+    const customPreview = result.current.getPreviewSampler();
+    expect(samplers[3].options.urls).toBe(current.options.urls);
+    expect(Tone.ToneAudioBuffer).toHaveBeenCalledTimes(31);
+    unmount();
+    expect(current.dispose).toHaveBeenCalledOnce();
+    expect(customPreview?.dispose).toHaveBeenCalledOnce();
+});
+
+test('multi-sample banks share all decoded buffers between voices and replacing a bank drops every previous root', () => {
+    const buffer = {
+        duration: 1,
+        length: 44100,
+        numberOfChannels: 1,
+    } as AudioBuffer;
+    const bank: CustomInstrument = {
+        name: 'Synth',
+        samples: [0, 60, 127].map((rootPitch) => ({
+            name: `${rootPitch}.wav`,
+            rootPitch,
+            buffer,
+        })),
+    };
+    const { result, rerender } = renderHook(
+        ({ source }) => usePianoSampler(source),
+        { initialProps: { source: bank } },
+    );
+    const main = samplers[0];
+    expect(Object.keys(main.options.urls ?? {})).toEqual(['0', '60', '127']);
+    expect(Tone.ToneAudioBuffer).toHaveBeenCalledTimes(3);
+    act(() => main.options.onload?.());
+    const preview = result.current.getPreviewSampler();
+    expect(samplers[1].options.urls).toBe(main.options.urls);
+    expect(Tone.ToneAudioBuffer).toHaveBeenCalledTimes(3);
+    rerender({
+        source: {
+            name: 'Replacement',
+            samples: [{ name: 'C4.wav', rootPitch: 60, buffer }],
+        },
+    });
+    expect(main.dispose).toHaveBeenCalledOnce();
+    expect(preview?.dispose).toHaveBeenCalledOnce();
+    expect(Object.keys(samplers[2].options.urls ?? {})).toEqual(['60']);
+});
+
+test('explicit stop clears held voices, owned events and completion callbacks before replacing notes', () => {
+    const { result } = renderHook(() => {
+        const instrument = usePianoSampler();
+        return { instrument, playback: usePlayback(instrument.samplerRef) };
+    });
+    act(() => samplers[0].options.onload?.());
+    useNoteStore.setState({
+        notes: {
+            a: {
+                id: 'a',
+                pitch: 60,
+                startTick: 0,
+                durationTicks: 960,
+                velocity: 100,
+                selected: false,
+            },
+        },
+    });
+    act(() => result.current.playback.togglePlayback());
+    const oldEvents = [...scheduledEvents.values()];
+    const completion = oldEvents.at(-1);
+    act(() => completion?.callback(12));
+    const oldTimer = [...completionTimers.values()][0];
+    const before = result.current.playback.getPlaybackGeneration();
+    act(() => result.current.playback.stopPlayback());
+    expect(result.current.playback.getPlaybackGeneration()).toBeGreaterThan(
+        before,
+    );
+    expect(result.current.playback.playbackState).toBe('stopped');
+    expect(transport.seconds).toBe(0);
+    expect(scheduledEvents.size).toBe(0);
+    expect(completionTimers.size).toBe(0);
+    expect(samplers[0].releaseAll).toHaveBeenCalledWith(12);
+    act(() => {
+        for (const event of oldEvents) event.callback(12);
+        oldTimer?.();
+    });
+    expect(samplers[0].triggerAttack).not.toHaveBeenCalled();
 });
 
 test('disposes the sampler, clears the ref, and ignores late callbacks on unmount', () => {

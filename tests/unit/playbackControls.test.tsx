@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as Tone from 'tone';
 import { toast } from 'sonner';
@@ -180,4 +180,53 @@ test('waits for audio activation to resolve before invoking playback', async () 
 
     enableAudio();
     await waitFor(() => expect(onPlay).toHaveBeenCalledTimes(1));
+});
+
+test('a stop or import invalidates an earlier Play request while audio activation is pending', async () => {
+    let enableAudio!: () => void;
+    let generation = 0;
+    vi.mocked(Tone.start).mockReturnValue(
+        new Promise<void>((resolve) => {
+            enableAudio = resolve;
+        }),
+    );
+    const onPlay = vi.fn();
+    render(
+        <ControlsHarness
+            isPlaying={false}
+            samplesReady
+            onPlay={onPlay}
+            getPlaybackGeneration={() => generation}
+        />,
+    );
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Play' }));
+    generation++;
+    await act(async () => enableAudio());
+    expect(onPlay).not.toHaveBeenCalled();
+});
+
+test('custom-instrument status names the active sample and pending activation ignores unmount', async () => {
+    let enableAudio!: () => void;
+    vi.mocked(Tone.start).mockReturnValue(
+        new Promise<void>((resolve) => {
+            enableAudio = resolve;
+        }),
+    );
+    const onPlay = vi.fn();
+    const { unmount } = render(
+        <ControlsHarness
+            isPlaying={false}
+            samplesReady
+            onPlay={onPlay}
+            instrumentName="violin.wav"
+        />,
+    );
+    expect(toast.success).toHaveBeenCalledWith(
+        'violin.wav ready',
+        expect.any(Object),
+    );
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Play' }));
+    unmount();
+    await act(async () => enableAudio());
+    expect(onPlay).not.toHaveBeenCalled();
 });

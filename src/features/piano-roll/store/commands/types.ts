@@ -11,6 +11,7 @@ type Change<T> = {
 
 export type NoteCommand = (
     | { type: 'ADD_NOTE' | 'PASTE_NOTES'; notes: readonly Note[] }
+    | { type: 'IMPORT_NOTES'; removed: readonly Note[]; notes: readonly Note[] }
     | {
           type: 'DELETE_NOTES';
           deleted: readonly { note: Note; index: number }[];

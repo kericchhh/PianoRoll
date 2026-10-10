@@ -2,19 +2,23 @@
 
 Client-side MIDI note editor, built incrementally with React, TypeScript, Zustand,
 Canvas 2D, use-gesture, and shadcn/ui with Radix primitives. Playback and command-based
-undo/redo and MIDI export are implemented; MIDI import and persistence are later slices.
+undo/redo, MIDI import/export, and custom audio samples are implemented. Project
+persistence is a later slice.
 
 The workspace fills the browser viewport, with pitch-reference keys on the left,
 tools and note insertion across the top, playback at the upper right, and a
 blank panel reserved beside the grid. Canvas dimensions follow the available
 panel size; pitch rows stay 20 CSS pixels high. Below 1024 pixels wide, the right
 panel hides and playback moves below the tools to give the grid more room.
-Unfinished MIDI import, save, transport, tempo, and Mix / FX controls are
+Unfinished save, transport, tempo, and Mix / FX controls are
 represented by empty, static placeholders without labels or mock controls.
 The left piano keys preview their pitch on pointer press, Enter, or Space, using
 a short piano sound without inserting notes or changing selection or history.
-One Tab stop enters the visible keys; Up/Down selects the next pitch and Home/End
-reaches the first/last visible key. Press feedback uses Motion's spring animation
+One Tab stop enters the visible keys; Up/Down selects the next pitch and scrolls
+at the visible edges. Home/End reaches the first/last visible key. Scrolling over
+the keys moves the pitch rows and matching notes, with bounds at MIDI 0 and 127.
+Wheel movement batches into animation frames and does not change notes or history.
+Press feedback uses Motion's spring animation
 to depress the key face, preserving its black or white finish. Reduced motion
 keeps only a static inset shadow. Preview voices have their own sampler and share
 the playback sampler's decoded buffers, so auditioning does not cut off playback
@@ -39,7 +43,8 @@ The group starts at the next 120-tick grid boundary and keeps its internal
 spacing, pitches, durations, and velocities. New notes become the selection;
 if the whole group will not fit, the paste is rejected and announced.
 Drag a note's visible right edge, or use Shift+Left/Right, to resize the
-selection by a shared tick delta. Notes have a minimum duration of 120 ticks.
+selection by a shared tick delta. Editing uses a 120-tick minimum duration;
+imported MIDI retains shorter durations, which can be extended to that minimum.
 Notes extending past a shortened timeline may be shortened but cannot be
 extended further; resizing does not force them inside the timeline.
 Movement reveals the selection without changing the stored MIDI coordinates.
@@ -55,12 +60,70 @@ Shortcuts respect editable controls, menus, key-repeat guards, and active gestur
 If a focused note disappears, focus returns to the editor. History stays in memory
 for this tab and is not saved across reloads.
 
-Settings opens a panel from the left, with Export MIDI under MIDI. The panel
+Settings opens a panel from the left, with Import MIDI, Export MIDI, and instrument
+sample controls. The panel
 overlays the workspace without resizing the grid, traps keyboard focus, closes
 with Escape or its close button, and returns focus to Settings. Motion for React
 animates the panel; reduced motion skips the animation and follows live preference
-changes. Import and custom sample
-management can be added to this panel in future slices.
+changes. File buttons stay focusable while busy, prevent duplicate submissions,
+and allow choosing the same file again. Errors have inline accessible messages.
+
+Import MIDI replaces the composition in one reversible `IMPORT_NOTES` command.
+Undo restores previous notes, order, and selection; redo restores the imported
+IDs. All tracks merge into the editor's one instrument. The parser converts note
+starts and endpoints from the file's PPQ to 480 PPQ without grid snapping and
+retains pitch, velocity, overlaps, and short durations. The current playback tempo
+and 4/4 grid stay in use; imported tempo maps, meters, programs, and controllers
+are not applied. The timeline expands to the next supported length, up to 32 bars;
+notes beyond that remain available in the note list, playback, and export. Import
+selects and reveals the first note and announces the result. A valid empty MIDI
+clears the notes reversibly. Unsupported format-2 and SMPTE files, malformed
+events, files over 2 MB, and files with over 10,000 note-on events are rejected
+before note data or playback changes. Bounded event validation precedes the
+library parser; shared import/export note validation also prevents tick values
+that overflow the MIDI writer's variable-length integers.
+
+Settings uses MIDI and Instrument tabs in a fixed panel. Only the pending sample
+list scrolls; its load/cancel actions remain visible. A GitHub icon in the lower
+right links to the repository.
+
+Import instrument folder replaces the entire playback and preview instrument.
+The folder picker reads nested audio files locally and ignores metadata/hidden
+files. Filenames such as `C4.wav`, `Ds4.mp3`, `Fs4.wav`, `Bb3.ogg`, and `MIDI60.wav`
+set each sample's original pitch. Unknown or ambiguous names need a manual MIDI
+pitch assignment before loading. The mapping list is keyboard operable; duplicate
+roots must be reassigned or removed, so velocity layers cannot overwrite silently.
+Roots span MIDI 0–127; the bank must collectively cover every editor pitch within
+Tone's 95-semitone search. Missing pitches transpose the nearest sample.
+Folders are limited to 128 audio samples, 200 MB encoded, and 256 MB decoded PCM.
+Sequential decoding also waits for any canceled native decoder before reading
+another file. The current instrument and playback stay active until every file
+validates and decodes. Failure/cancellation retains that instrument. Successful
+replacement disposes old voices and drops all their sample roots.
+
+The optional Use a single sample section loads one pitched audio recording with a selectable root pitch.
+Browser-supported formats such as WAV, MP3, OGG, and FLAC depend on the browser's
+decoder. Files are limited to 20 MB, 30 seconds, and 128 MB of decoded audio.
+Root assignments span MIDI 32–95, keeping every editor pitch within the installed
+Tone sampler's 95-semitone search range. The recording plays once and transposes
+by playback rate; it is not a looping instrument bank or a plugin loader.
+The root is the recording's original pitch: a C4 sample rooted at C4 plays C5 at
+twice the speed. Before importing a sample, the control sets the next import's
+root when using the bundled piano or a multi-sample bank. With an active
+single-sample instrument, it immediately retunes that sample.
+Playback and piano-key preview samplers share the same decoded buffers with
+independent voices. Root reassignment reuses that buffer. Restore piano returns
+to the bundled instrument. Samples stay in memory for this tab and disappear
+on reload. Decode failures retain the active instrument and playback. Successful
+MIDI import, instrument replacement, and root reassignment stop playback and invalidate
+pending audio-start requests before changing the composition or instrument.
+
+The underlying APIs are [`new Midi(bytes)`, `header.ppq`, and track note ticks](https://github.com/Tonejs/Midi/blob/master/README.md),
+[`Tone.getContext().decodeAudioData`](https://tonejs.github.io/docs/15.1.22/classes/Context.html#decodeAudioData),
+[`Tone.Sampler` with MIDI root keys and decoded buffers](https://tonejs.github.io/docs/15.1.22/classes/Sampler.html),
+and [folder inputs with `webkitdirectory` and `File.webkitRelativePath`](https://wicg.github.io/entries-api/#dom-htmlinputelement-webkitdirectory).
+The import hooks own file reads and feedback; pure MIDI conversion, validation,
+and reversible command application remain separate from the UI.
 
 Export MIDI downloads `piano-roll.mid` entirely in the browser using `@tonejs/midi`.
 It includes all stored notes, even notes outside a shortened timeline, with the
@@ -93,8 +156,9 @@ notes through `usePlayback` using Tone's Transport. The button switches its icon
 between Play and Pause. Pausing releases active sampler voices; resuming keeps
 the same transport position and scheduled events, and reattacks notes still held
 at that position. Their original note-off events end the remaining duration.
-Overlapping notes of the same pitch release together at their latest endpoint;
-back-to-back notes release before the next attack. Playback finishes at the last
+Overlapping audible notes of the same pitch release together at their latest endpoint;
+silent notes do not add attacks, retrigger, or extend an audible note's release.
+Back-to-back notes release before the next attack. Playback finishes at the last
 note's endpoint, resets the button to Play, and clears its old events. Pressing
 Play again rebuilds the schedule from the current notes and starts at tick zero.
 An empty project stays ready to play. Unmount stops playback, clears the editor's
@@ -140,9 +204,11 @@ disabled, run `npm run prepare` separately. Hooks never stage the entire reposit
 - `hooks/`: `editor/` owns composition, viewport, grid rendering, and zoom/pan;
   `notes/` owns actions, announcements, gestures, clipboard, and keyboard commands;
   `playback/` owns the sampler, controls, scheduling, completion, and visual loops;
-  `midi/` owns export orchestration and notifications.
-- `midi/`: pure note grouping and serialization plus browser download handling.
-- `audio/`: piano sample mapping, playback types, and note-event scheduling; audio files and credits are in
+  `midi/` owns import/export orchestration and notifications.
+- `midi/`: bounded file/event validation, PPQ conversion, shared note validation,
+  pure note grouping and serialization, and browser download handling.
+- `audio/`: sample constraints, shared instrument status, playback session cleanup,
+  piano sample mapping, playback types, and note-event scheduling; audio files and credits are in
   `public/audio/piano/`.
 - `rendering/`: drawing passes grouped into `grid/`, `notes/`, and `playback/`,
   with shared colors at the root.

@@ -34,13 +34,62 @@ test('left settings panel supports keyboard focus, dismissal, and leaves the can
     });
     const close = panel.getByRole('button', { name: 'Close settings' });
     const exporting = panel.getByRole('button', { name: 'Export MIDI' });
+    const importing = panel.getByRole('button', { name: 'Import MIDI' });
+    const folderImport = panel.getByRole('button', {
+        name: 'Import instrument folder',
+    });
+    const rootPitch = panel.getByRole('combobox', {
+        name: 'Sample root pitch',
+    });
+    const sampleImport = panel.getByRole('button', { name: 'Import sample' });
     await expect(close).toBeFocused();
     await page.keyboard.press('Tab');
+    const midiTab = panel.getByRole('tab', { name: 'MIDI', exact: true });
+    const instrumentTab = panel.getByRole('tab', {
+        name: 'Instrument',
+        exact: true,
+    });
+    await expect(midiTab).toBeFocused();
+    await page.keyboard.press('Tab');
     await expect(exporting).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(importing).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(close).toBeFocused();
+    await midiTab.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(instrumentTab).toBeFocused();
+    await expect(instrumentTab).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('Tab');
+    await expect(folderImport).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(
+        panel.getByRole('button', { name: 'Use a single sample', exact: true }),
+    ).toBeFocused();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Tab');
+    await expect(rootPitch).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(sampleImport).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(close).toBeFocused();
     await page.keyboard.press('Shift+Tab');
-    await expect(exporting).toBeFocused();
+    await expect(sampleImport).toBeFocused();
+    const singleToggle = panel.getByRole('button', {
+        name: 'Use a single sample',
+        exact: true,
+    });
+    await midiTab.click();
+    await importing.focus();
+    await page.keyboard.press('Tab');
+    await expect(close).toBeFocused();
+    await instrumentTab.click();
+    await singleToggle.focus();
+    await page.keyboard.press('Enter');
+    await expect(singleToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(rootPitch).toHaveCount(0);
+    await page.keyboard.press('Tab');
+    await expect(close).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(panel).toHaveCount(0);
     await expect(trigger).toBeFocused();
@@ -81,6 +130,35 @@ test('live reduced-motion changes skip the slide and the left panel fits a narro
             .locator('[data-slot="sheet-overlay"]')
             .evaluate((element) => getComputedStyle(element).opacity),
     ).toBe('1');
+    await panel.getByRole('tab', { name: 'Instrument', exact: true }).click();
+    const instrumentPanel = panel.getByRole('tabpanel', {
+        name: 'Instrument',
+        exact: true,
+    });
+    expect(
+        await instrumentPanel.evaluate(
+            (element) => getComputedStyle(element).opacity,
+        ),
+    ).toBe('1');
+    const singleToggle = panel.getByRole('button', {
+        name: 'Use a single sample',
+        exact: true,
+    });
+    await singleToggle.click();
+    await expect(singleToggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(singleToggle).toHaveAttribute('aria-controls', /.+/);
+    const contentId = await singleToggle.getAttribute('aria-controls');
+    const disclosure = panel.locator(`[id="${contentId}"]`);
+    await expect(
+        panel.getByRole('combobox', { name: 'Sample root pitch' }),
+    ).toBeVisible();
+    await singleToggle.click();
+    await expect(singleToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect
+        .poll(() =>
+            disclosure.evaluate((element) => getComputedStyle(element).height),
+        )
+        .toBe('0px');
     await panel.getByRole('button', { name: 'Close settings' }).click();
     await expect(panel).toHaveCount(0);
     await expect(trigger).toBeFocused();
