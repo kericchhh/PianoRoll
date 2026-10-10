@@ -13,6 +13,7 @@ import { NoteInsertionForm } from '@/features/piano-roll/components/notes/NoteIn
 import { PlayheadCanvas } from '@/features/piano-roll/components/playback/PlayheadCanvas';
 import type { PlaybackState } from '@/features/piano-roll/audio/playbackTypes';
 import { HistoryControls } from '@/features/piano-roll/components/toolbar/HistoryControls';
+import { EditorSettingsPanel } from '@/features/piano-roll/components/editor/EditorSettingsPanel';
 
 type Props = {
     playbackControls?: ReactNode;
@@ -20,6 +21,7 @@ type Props = {
     getPlaybackTick?: () => number;
     playbackState?: PlaybackState;
     playbackWaveform?: ReactNode;
+    onPreviewPitch?: (pitch: number) => void;
 };
 
 export function PianoRollEditor({
@@ -28,6 +30,7 @@ export function PianoRollEditor({
     getPlaybackTick,
     playbackState = 'stopped',
     playbackWaveform,
+    onPreviewPitch,
 }: Props) {
     const [barCount, setBarCount] = useState(INITIAL_BAR_COUNT);
     const endTick = barCount * BEATS_PER_BAR * PPQ;
@@ -39,6 +42,7 @@ export function PianoRollEditor({
             aria-label="Piano roll workspace"
         >
             <EditorHeader
+                settingsControls={<EditorSettingsPanel />}
                 historyControls={
                     <HistoryControls
                         onUndo={editor.interactions.undo}
@@ -63,6 +67,7 @@ export function PianoRollEditor({
             />
             <PianoRollMain
                 editor={editor}
+                onPreviewPitch={onPreviewPitch}
                 playhead={
                     getPlaybackTick && (
                         <PlayheadCanvas

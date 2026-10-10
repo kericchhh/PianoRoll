@@ -9,9 +9,11 @@ import { StudioSidebar } from '@/features/piano-roll/components/editor/StudioSid
 export function PianoRollMain({
     editor,
     playhead,
+    onPreviewPitch,
 }: {
     editor: PianoRollEditorModel;
     playhead?: ReactNode;
+    onPreviewPitch?: (pitch: number) => void;
 }) {
     return (
         <div className="workspace-grid min-h-0 flex-1">
@@ -26,6 +28,7 @@ export function PianoRollMain({
                 <PianoKeys
                     highestPitch={editor.viewport.highestPitch}
                     height={editor.viewport.height}
+                    onPreview={onPreviewPitch}
                 />
             </div>
             <PianoRollSurface editor={editor} playhead={playhead} />

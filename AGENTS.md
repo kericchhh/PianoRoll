@@ -41,7 +41,7 @@ A browser-based piano-roll MIDI composer (like a mini Ableton/Logic note editor)
 | Drag/gesture handling                                          | `@use-gesture/react`                                               |
 | Canvas rendering                                               | Hand-rolled Canvas 2D (no scene-graph library — this is the point) |
 | Local persistence                                              | Dexie.js (IndexedDB wrapper)                                       |
-| UI chrome animation (toolbar/panels only, never the note grid) | Framer Motion                                                      |
+| UI chrome animation (toolbar/panels only, never the note grid) | Motion for React (`motion/react`)                                   |
 | Accessible primitives (menus, sliders, dialogs)                | shadcn/ui with Radix UI; Sonner for toasts                         |
 | Icons                                                          | lucide-react                                                       |
 | Styling                                                        | Tailwind CSS                                                       |
@@ -79,7 +79,7 @@ Polyphony needs voice management — `Tone.PolySynth` or `Tone.Sampler`, not man
 ### 3.3 Rendering layer — the central architectural decision
 
 - **Canvas**: cheap at scale (1000+ notes), but invisible to assistive tech by default.
-- **DOM**: free accessibility and easy Framer Motion, but degrades past a few hundred notes.
+- **DOM**: free accessibility and easy Motion animations, but degrades past a few hundred notes.
 - **Chosen approach: hybrid.** Canvas for the note grid itself. A thin DOM overlay for only the currently selected/dragged note (native pointer capture + focus ring). A visually-hidden list synced to the note array, wrapped in an `aria-live="polite"` region, for screen reader users.
 
 Do not suggest an all-canvas or all-DOM rewrite without flagging that it reopens this trade-off.
@@ -168,7 +168,7 @@ type Command =
 - Full keyboard operability: arrow keys move the selected note, Shift+arrow resizes, Delete removes, Ctrl/Cmd+Z / Shift+Ctrl+Z undo/redo, Space toggles play/pause.
 - Every note mutation (add/move/resize/delete) announces a concise message via the `aria-live` region.
 - Visible, high-contrast focus indicators (WCAG AA minimum contrast) on the DOM-overlay note and all toolbar controls.
-- Respect `prefers-reduced-motion` — disable non-essential Framer Motion transitions when set.
+- Respect `prefers-reduced-motion` — disable non-essential Motion transitions when set.
 - Screen-reader users must be able to enumerate and edit notes via the hidden list, not just via the canvas.
 
 ---
@@ -224,6 +224,12 @@ When given a task, identify which milestone it belongs to and don't pull in work
 ## 11. Open Questions Log
 
 When a task surfaces a genuine unresolved design choice (e.g., exact PPQ resolution, whether to support multiple instrument tracks, sampler vs. synth default), add it here instead of deciding unilaterally, so the human can weigh in.
+
+- Confirmed: the piano keys on the left preview their pitch with a short sound on each press; existing grid notes keep their editing behavior. Pointer press, Enter, and Space audition without adding notes or touching selection, history, or Transport. Press feedback preserves the black or white finish and uses Motion's spring animation to depress the key face; reduced motion keeps only a static inset shadow. Preview voices use a separate sampler with the same decoded piano buffers as playback. The keys have one Tab stop with arrow navigation.
+
+- Confirmed: the toolbar's Settings button opens a modal panel that slides in from the left. Export MIDI lives in this panel; MIDI import and custom sample management can be added here in the future. The panel traps keyboard focus, closes with Escape or its close button, restores focus to Settings, and skips animation for reduced motion. It overlays the workspace without resizing the canvas.
+
+- Confirmed: MIDI export omits zero-velocity notes to preserve silence and reports the omission. Conflicting same-pitch notes are separated into piano tracks so their original tick positions, durations, and velocities round-trip correctly. This is an export encoding detail; the editor remains one piano instrument. Export uses all stored notes, the current playback tempo, and the project's existing PPQ and beats-per-bar constants, without changing note data or undo/redo history.
 
 - Confirmed: undo/redo restores the selection captured with each note edit. Selection-only changes stay outside history. Reversible commands use separate undo and redo stacks; grouped edits commit once, new edits clear redo, and no-op edits preserve history.
 

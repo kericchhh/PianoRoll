@@ -117,6 +117,12 @@ vi.mock('tone', () => ({
             }
         },
     ),
+    ToneAudioBuffer: vi.fn(
+        class {
+            dispose = vi.fn();
+            constructor(public options: { url: string; onerror: () => void }) {}
+        },
+    ),
     Midi: vi.fn((pitch: number) => ({
         toNote: () => {
             const notes: Record<number, string> = { 60: 'C4', 64: 'E4' };
@@ -125,7 +131,10 @@ vi.mock('tone', () => ({
     })),
     Sampler: vi.fn(
         class {
-            dispose = vi.fn();
+            disposed = false;
+            dispose = vi.fn(() => {
+                this.disposed = true;
+            });
             loaded = false;
             triggerAttack = vi.fn();
             triggerRelease = vi.fn();
@@ -133,6 +142,7 @@ vi.mock('tone', () => ({
             connect = vi.fn();
             options: Partial<SamplerOptions>;
             constructor(options: Partial<SamplerOptions>) {
+                this.loaded = options.onload === undefined;
                 this.options = {
                     ...options,
                     onload: () => {
@@ -222,6 +232,30 @@ test('creates one sampler per effect lifetime and becomes ready only when sample
     expect(result.current.samplesFailed).toBe(false);
     expect(result.current.samplerRef.current).toBe(sampler);
     expect(samplers).toHaveLength(1);
+});
+
+test('preview has isolated voices, shares decoded buffers, and is created only on demand', () => {
+    const { result, rerender, unmount } = renderHook(usePianoSampler);
+    const getter = result.current.getPreviewSampler;
+    expect(getter()).toBeNull();
+    expect(samplers).toHaveLength(1);
+    expect(Tone.ToneAudioBuffer).toHaveBeenCalledTimes(30);
+    act(() => samplers[0].options.onload?.());
+    const preview = getter();
+    expect(preview).toBe(samplers[1]);
+    expect(preview).not.toBe(samplers[0]);
+    expect(samplers[1].options.urls).toBe(samplers[0].options.urls);
+    expect(Tone.ToneAudioBuffer).toHaveBeenCalledTimes(30);
+    expect(samplers[1].connect).not.toHaveBeenCalled();
+    rerender();
+    expect(result.current.getPreviewSampler).toBe(getter);
+    expect(getter()).toBe(preview);
+    expect(samplers).toHaveLength(2);
+    unmount();
+    expect(preview?.dispose).toHaveBeenCalledTimes(1);
+    expect(getter()).toBeNull();
+    for (const buffer of vi.mocked(Tone.ToneAudioBuffer).mock.instances)
+        expect(buffer.dispose).toHaveBeenCalledTimes(1);
 });
 
 test('reports a sample loading failure without claiming readiness', () => {

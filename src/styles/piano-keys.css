@@ -1,0 +1,28 @@
+.piano-key {
+    display: block;
+    width: 100%;
+    padding: 0;
+    cursor: pointer;
+    touch-action: none;
+}
+
+.piano-key-face {
+    position: absolute;
+    inset: 0;
+    background: var(--studio-bone);
+}
+
+.piano-key-face,
+.piano-key-black {
+    pointer-events: none;
+}
+
+.piano-key:focus-visible {
+    z-index: 1;
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+}
+
+.piano-key:disabled {
+    cursor: default;
+}

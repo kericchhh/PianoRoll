@@ -2,17 +2,23 @@
 
 Client-side MIDI note editor, built incrementally with React, TypeScript, Zustand,
 Canvas 2D, use-gesture, and shadcn/ui with Radix primitives. Playback and command-based
-undo/redo are implemented; MIDI I/O and persistence are later milestones.
+undo/redo and MIDI export are implemented; MIDI import and persistence are later slices.
 
 The workspace fills the browser viewport, with pitch-reference keys on the left,
 tools and note insertion across the top, playback at the upper right, and a
 blank panel reserved beside the grid. Canvas dimensions follow the available
 panel size; pitch rows stay 20 CSS pixels high. Below 1024 pixels wide, the right
 panel hides and playback moves below the tools to give the grid more room.
-Unfinished MIDI, save, transport, tempo, and Mix / FX controls are
+Unfinished MIDI import, save, transport, tempo, and Mix / FX controls are
 represented by empty, static placeholders without labels or mock controls.
-The keys are visual pitch references;
-they do not audition notes yet.
+The left piano keys preview their pitch on pointer press, Enter, or Space, using
+a short piano sound without inserting notes or changing selection or history.
+One Tab stop enters the visible keys; Up/Down selects the next pitch and Home/End
+reaches the first/last visible key. Press feedback uses Motion's spring animation
+to depress the key face, preserving its black or white finish. Reduced motion
+keeps only a static inset shadow. Preview voices have their own sampler and share
+the playback sampler's decoded buffers, so auditioning does not cut off playback
+or download a second set of samples.
 
 ## Development
 
@@ -48,6 +54,23 @@ Selection-only changes and no-op edits preserve history; new edits clear redo.
 Shortcuts respect editable controls, menus, key-repeat guards, and active gestures.
 If a focused note disappears, focus returns to the editor. History stays in memory
 for this tab and is not saved across reloads.
+
+Settings opens a panel from the left, with Export MIDI under MIDI. The panel
+overlays the workspace without resizing the grid, traps keyboard focus, closes
+with Escape or its close button, and returns focus to Settings. Motion for React
+animates the panel; reduced motion skips the animation and follows live preference
+changes. Import and custom sample
+management can be added to this panel in future slices.
+
+Export MIDI downloads `piano-roll.mid` entirely in the browser using `@tonejs/midi`.
+It includes all stored notes, even notes outside a shortened timeline, with the
+project's 480 PPQ and 4/4 timing and the current playback tempo. MIDI encoding loads
+only when Export is pressed and does not change notes, selection, or history.
+Conflicting same-pitch notes are separated into piano tracks to preserve each
+note's timing and duration. Zero-velocity notes are omitted to preserve silence;
+the export toast reports how many were omitted. Empty projects produce valid MIDI.
+The keyboard-operable button keeps focus and announces success or failure through
+Sonner. Temporary download URLs are revoked after the browser begins the download.
 
 Shared controls live in `src/shared/components/ui/`; `components.json` directs
 the shadcn CLI to that folder. Sonner notifications use one app-level Toaster.
@@ -108,15 +131,17 @@ disabled, run `npm run prepare` separately. Hooks never stage the entire reposit
 
 ## Ownership
 
-- `components/`: grouped into `editor/`, `toolbar/`, `grid/`, `notes/`, and
-  `playback/`. `PianoRollEditor` composes the header, main workspace, and footer.
+- `components/`: grouped into `editor/`, `toolbar/`, `grid/`, `notes/`,
+  `playback/`, and `midi/`. `PianoRollEditor` composes the header, main workspace, and footer.
   The header separates tools from playback; the main workspace contains keys,
   ruler, the editing surface, and the reserved sidebar. The surface composes the
   grid and playhead canvases, selected-note overlay, context menu, accessible list,
-  instructions, and announcements.
+  instructions, and announcements. `EditorSettingsPanel` groups project file actions.
 - `hooks/`: `editor/` owns composition, viewport, grid rendering, and zoom/pan;
   `notes/` owns actions, announcements, gestures, clipboard, and keyboard commands;
-  `playback/` owns the sampler, controls, scheduling, completion, and visual loops.
+  `playback/` owns the sampler, controls, scheduling, completion, and visual loops;
+  `midi/` owns export orchestration and notifications.
+- `midi/`: pure note grouping and serialization plus browser download handling.
 - `audio/`: piano sample mapping, playback types, and note-event scheduling; audio files and credits are in
   `public/audio/piano/`.
 - `rendering/`: drawing passes grouped into `grid/`, `notes/`, and `playback/`,

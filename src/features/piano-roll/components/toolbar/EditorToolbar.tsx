@@ -5,12 +5,14 @@ type Props = {
     timeline: ReactNode;
     insertionForm: ReactNode;
     historyControls: ReactNode;
+    settingsControls: ReactNode;
 };
 
 export function EditorToolbar({
     timeline,
     insertionForm,
     historyControls,
+    settingsControls,
 }: Props) {
     return (
         <section aria-label="Toolbox" className="min-w-0 px-4 py-3">
@@ -22,7 +24,10 @@ export function EditorToolbar({
                 <SnapIndicator />
                 {historyControls}
             </div>
-            {insertionForm}
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                {insertionForm}
+                {settingsControls}
+            </div>
         </section>
     );
 }

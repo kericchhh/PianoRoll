@@ -4,11 +4,22 @@ import { PlaybackWaveform } from '@/features/piano-roll/components/playback/Play
 import { usePianoSampler } from '@/features/piano-roll/hooks/playback/usePianoSampler';
 import { usePlayback } from '@/features/piano-roll/hooks/playback/usePlayback';
 import { usePlaybackControls } from '@/features/piano-roll/hooks/playback/usePlaybackControls';
+import { usePianoPreview } from '@/features/piano-roll/hooks/playback/usePianoPreview';
 import { Toaster } from '@/shared/components/ui/sonner';
 
 export function App() {
-    const { samplesReady, samplesFailed, samplerRef, getWaveformSamples } =
-        usePianoSampler();
+    const {
+        samplesReady,
+        samplesFailed,
+        samplerRef,
+        getWaveformSamples,
+        getPreviewSampler,
+    } = usePianoSampler();
+    const previewPitch = usePianoPreview({
+        samplesReady,
+        samplesFailed,
+        getPreviewSampler,
+    });
     const { isPlaying, playbackState, togglePlayback, getPlaybackTick } =
         usePlayback(samplerRef);
     const handlePlay = usePlaybackControls({
@@ -21,6 +32,7 @@ export function App() {
         <main className="flex h-dvh min-h-0 flex-col p-2">
             <PianoRollEditor
                 onTogglePlayback={handlePlay}
+                onPreviewPitch={previewPitch}
                 playbackControls={
                     <PlaybackControls
                         isPlaying={isPlaying}

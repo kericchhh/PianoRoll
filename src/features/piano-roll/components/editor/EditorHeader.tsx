@@ -6,6 +6,7 @@ type Props = {
     timeline: ReactNode;
     insertionForm: ReactNode;
     historyControls: ReactNode;
+    settingsControls: ReactNode;
     playbackControls?: ReactNode;
     playbackWaveform?: ReactNode;
 };
@@ -14,6 +15,7 @@ export function EditorHeader({
     timeline,
     insertionForm,
     historyControls,
+    settingsControls,
     playbackControls,
     playbackWaveform,
 }: Props) {
@@ -23,6 +25,7 @@ export function EditorHeader({
                 timeline={timeline}
                 insertionForm={insertionForm}
                 historyControls={historyControls}
+                settingsControls={settingsControls}
             />
             <EditorPlaybackPanel waveform={playbackWaveform}>
                 {playbackControls}
