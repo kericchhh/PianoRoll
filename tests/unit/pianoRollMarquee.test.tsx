@@ -321,12 +321,13 @@ test('canvas draws the marquee above notes and focuses the editor for keyboard o
                 : null;
         },
     );
-    let frame: FrameRequestCallback | undefined;
+    const frames = new Map<number, FrameRequestCallback>();
+    let nextFrameId = 0;
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
-        frame = callback;
-        return 1;
+        frames.set(++nextFrameId, callback);
+        return nextFrameId;
     });
-    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => frames.delete(id));
     render(<PianoRollEditor />);
     const canvas = screen.getByRole('img', { name: 'Time grid preview' });
     setCanvasSize(canvas);
@@ -344,7 +345,11 @@ test('canvas draws the marquee above notes and focuses the editor for keyboard o
             typeof handler
         >[0]),
     );
-    act(() => frame?.(0));
+    act(() => {
+        for (const [id, callback] of [...frames]) {
+            if (frames.delete(id)) callback(0);
+        }
+    });
 
     expect(context.fillRect).toHaveBeenLastCalledWith(50, 0, 120, 55);
     expect(context.strokeRect).toHaveBeenLastCalledWith(50, 0, 120, 55);

@@ -14,7 +14,6 @@ export function downloadMidi(bytes: Uint8Array): void {
         anchor.click();
     } finally {
         anchor.remove();
-        // Allow the browser to begin consuming the download before releasing it.
         window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 }

@@ -25,7 +25,6 @@ export function serializeMidi(notes: readonly Note[], bpm: number): MidiExport {
         tempos: [{ ticks: 0, bpm }],
         timeSignatures: [{ ticks: 0, timeSignature: [BEATS_PER_BAR, 4] }],
     });
-    // Keep even an empty export a valid piano MIDI file.
     if (groups.length === 0) groups.push([]);
     for (const [index, group] of groups.entries()) {
         const track = midi.addTrack();

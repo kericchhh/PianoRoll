@@ -10,6 +10,7 @@ import { useNoteKeyboard } from '@/features/piano-roll/hooks/notes/useNoteKeyboa
 import { useNoteDrag } from '@/features/piano-roll/hooks/notes/useNoteDrag';
 import { useNotePointerDown } from '@/features/piano-roll/hooks/notes/useNotePointerDown';
 import { useNoteHistory } from '@/features/piano-roll/hooks/notes/useNoteHistory';
+import { useNoteCursor } from '@/features/piano-roll/hooks/notes/useNoteCursor';
 
 export function useNoteInteractions(options: NoteInteractionOptions) {
     const {
@@ -111,6 +112,7 @@ export function useNoteInteractions(options: NoteInteractionOptions) {
         resetMarquee,
         startMarquee,
     });
+    const cursor = useNoteCursor({ ...options, gestureModeRef, noteAt });
 
     function handleCanvasContextMenu(event: MouseEvent<HTMLElement>) {
         if (event.button !== 2) {
@@ -159,6 +161,7 @@ export function useNoteInteractions(options: NoteInteractionOptions) {
     }
 
     return {
+        cursor,
         undo: history.undo,
         redo: history.redo,
         menuNoteId,

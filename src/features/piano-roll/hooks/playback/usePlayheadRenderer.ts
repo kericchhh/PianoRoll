@@ -15,6 +15,7 @@ type Options = {
     playbackState: PlaybackState;
     getPlaybackTick: () => number;
     requestRedraw: () => void;
+    preserveViewOnStopRef?: RefObject<boolean>;
 };
 
 export function usePlayheadRenderer({
@@ -25,6 +26,7 @@ export function usePlayheadRenderer({
     playbackState,
     getPlaybackTick,
     requestRedraw,
+    preserveViewOnStopRef,
 }: Options) {
     const { width, height, getView, scrollRef } = viewport;
     const previousStateRef = useRef(playbackState);
@@ -44,8 +46,10 @@ export function usePlayheadRenderer({
         if (
             previousStateRef.current !== 'stopped' &&
             playbackState === 'stopped'
-        )
-            resetViewRef.current = true;
+        ) {
+            resetViewRef.current = !preserveViewOnStopRef?.current;
+            if (preserveViewOnStopRef) preserveViewOnStopRef.current = false;
+        }
         previousStateRef.current = playbackState;
         let frameId: number | null = null;
         let previousTick: number | null = null;
@@ -117,5 +121,6 @@ export function usePlayheadRenderer({
         playbackState,
         getPlaybackTick,
         requestRedraw,
+        preserveViewOnStopRef,
     ]);
 }

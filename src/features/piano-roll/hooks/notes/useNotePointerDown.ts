@@ -3,8 +3,7 @@ import type { GestureMode, Note } from '@/features/piano-roll/types';
 import type { NoteInteractionOptions } from '@/features/piano-roll/hooks/notes/noteInteractionTypes';
 import { eventToMusicPoint } from '@/features/piano-roll/utils/coordinates/eventToMusicPoint';
 import { getCanvasScale } from '@/features/piano-roll/utils/coordinates/canvasCoordinates';
-import { isNoteResizeHandle } from '@/features/piano-roll/utils/notes/isNoteResizeHandle';
-import { tickToPixel } from '@/features/piano-roll/utils/coordinates/tickToPixel';
+import { getNoteEditMode } from '@/features/piano-roll/utils/notes/getNoteEditMode';
 
 type Options = Pick<
     NoteInteractionOptions,
@@ -91,21 +90,12 @@ export function useNotePointerDown({
             return;
         }
         const view = getView();
-        const endpointX = tickToPixel(
-            match.startTick + match.durationTicks,
-            view.pixelsPerTick,
-            view.scrollOffsetX,
+        gestureModeRef.current = getNoteEditMode(
+            match,
+            point.tick,
+            view,
+            width,
+            dragScaleRef.current.x,
         );
-        gestureModeRef.current =
-            endpointX > 0 &&
-            endpointX <= width &&
-            isNoteResizeHandle(
-                match,
-                point.tick,
-                view.pixelsPerTick,
-                dragScaleRef.current.x,
-            )
-                ? 'resize'
-                : 'move';
     };
 }

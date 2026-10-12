@@ -28,6 +28,17 @@ export const useNoteStore = create<NoteStoreState>()((set, get) => {
         redoStack: [],
         undo: () => step('undo'),
         redo: () => step('redo'),
+        replaceNotes: (notes) =>
+            set({
+                notes: Object.fromEntries(
+                    notes.map((note) => [
+                        note.id,
+                        { ...note, selected: false },
+                    ]),
+                ),
+                undoStack: [],
+                redoStack: [],
+            }),
         importNotes: (notes) =>
             set((state) =>
                 executeNoteCommand(

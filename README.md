@@ -2,15 +2,15 @@
 
 Client-side MIDI note editor, built incrementally with React, TypeScript, Zustand,
 Canvas 2D, use-gesture, and shadcn/ui with Radix primitives. Playback and command-based
-undo/redo, MIDI import/export, and custom audio samples are implemented. Project
-persistence is a later slice.
+undo/redo, MIDI import/export, custom audio samples, and local project save/load
+are implemented.
 
 The workspace fills the browser viewport, with pitch-reference keys on the left,
 tools and note insertion across the top, playback at the upper right, and a
 blank panel reserved beside the grid. Canvas dimensions follow the available
 panel size; pitch rows stay 20 CSS pixels high. Below 1024 pixels wide, the right
 panel hides and playback moves below the tools to give the grid more room.
-Unfinished save, transport, tempo, and Mix / FX controls are
+Unfinished transport, tempo, and Mix / FX controls are
 represented by empty, static placeholders without labels or mock controls.
 The left piano keys preview their pitch on pointer press, Enter, or Space, using
 a short piano sound without inserting notes or changing selection or history.
@@ -49,6 +49,14 @@ Notes extending past a shortened timeline may be shortened but cannot be
 extended further; resizing does not force them inside the timeline.
 Movement reveals the selection without changing the stored MIDI coordinates.
 
+The grid cursor follows the action: crosshair for drawing or marquee selection,
+move over note bodies, and horizontal resize at an eligible note's right edge.
+Holding Shift shows grab; panning shows grabbing. Ctrl/Cmd over a note shows
+pointer for selection. The selected-note overlay uses the same cursor and hit
+targets as the canvas. An active gesture keeps its cursor when modifiers change;
+release/cancel restores hover feedback. Stationary hover updates after modifier,
+viewport, or note changes, without pointer-driven React rendering.
+
 Ctrl/Cmd+Z undoes the last note edit; Ctrl/Cmd+Shift+Z redoes it. Toolbar Undo and
 Redo use the same actions. Each insertion, group move, resize, deletion, or paste
 creates one reversible command. Drag previews stay outside history and commit once
@@ -60,8 +68,8 @@ Shortcuts respect editable controls, menus, key-repeat guards, and active gestur
 If a focused note disappears, focus returns to the editor. History stays in memory
 for this tab and is not saved across reloads.
 
-Settings opens a panel from the left, with Import MIDI, Export MIDI, and instrument
-sample controls. The panel
+Settings opens a panel from the left, with Import MIDI, Export MIDI, instrument
+sample controls, and local project save/load. The panel
 overlays the workspace without resizing the grid, traps keyboard focus, closes
 with Escape or its close button, and returns focus to Settings. Motion for React
 animates the panel; reduced motion skips the animation and follows live preference
@@ -83,7 +91,7 @@ before note data or playback changes. Bounded event validation precedes the
 library parser; shared import/export note validation also prevents tick values
 that overflow the MIDI writer's variable-length integers.
 
-Settings uses MIDI and Instrument tabs in a fixed panel. Only the pending sample
+Settings uses MIDI, Instrument, and Project tabs in a fixed panel. Only the pending sample
 list scrolls; its load/cancel actions remain visible. A GitHub icon in the lower
 right links to the repository.
 
@@ -173,6 +181,29 @@ beside Play, includes its release tail, and stops polling when idle. Reduced mot
 disables waveform animation while preserving the essential playback indicator.
 Screen readers receive playback-state announcements instead of frame updates.
 
+## Local projects
+
+Settings → Project has explicit Save project and Load project buttons. One local
+save slot uses IndexedDB through Dexie; saving overwrites the previous save in
+this browser and origin. Reloading starts an empty editor until Load project is
+pressed. Saving an empty composition is supported.
+
+The versioned record contains note IDs, pitches, tick positions, durations,
+velocities, and timeline length, plus the fixed 480 PPQ and 4/4 timing metadata.
+Short imported notes, silent notes, and notes beyond the timeline are retained
+exactly. Selection, undo/redo stacks, viewport, and audio buffers are not saved.
+Loading validates the record before stopping playback, replaces notes and
+timeline, and clears selection and history. The current instrument stays active;
+zoom/pan stay in place and clamp to the restored timeline. After a page reload,
+custom instruments must be imported again.
+
+Failed saves preserve the previous database record. Missing, invalid, or
+unreadable saves leave the editor and playback untouched. Loading rejects an
+active gesture or changes to notes/timeline during its asynchronous read.
+Duplicate actions are blocked while busy; completions after editor unmount
+cannot replace notes. Accessible status/error messages and toasts report results.
+Persistence runs only on explicit actions, never on drag previews or audio frames.
+
 ## Verification
 
 ```sh
@@ -196,7 +227,7 @@ disabled, run `npm run prepare` separately. Hooks never stage the entire reposit
 ## Ownership
 
 - `components/`: grouped into `editor/`, `toolbar/`, `grid/`, `notes/`,
-  `playback/`, and `midi/`. `PianoRollEditor` composes the header, main workspace, and footer.
+  `playback/`, `midi/`, and `projects/`. `PianoRollEditor` composes the header, main workspace, and footer.
   The header separates tools from playback; the main workspace contains keys,
   ruler, the editing surface, and the reserved sidebar. The surface composes the
   grid and playhead canvases, selected-note overlay, context menu, accessible list,
@@ -204,7 +235,10 @@ disabled, run `npm run prepare` separately. Hooks never stage the entire reposit
 - `hooks/`: `editor/` owns composition, viewport, grid rendering, and zoom/pan;
   `notes/` owns actions, announcements, gestures, clipboard, and keyboard commands;
   `playback/` owns the sampler, controls, scheduling, completion, and visual loops;
-  `midi/` owns import/export orchestration and notifications.
+  `midi/` owns import/export orchestration and notifications;
+  `projects/` owns explicit save/load orchestration and async guards.
+- `persistence/`: versioned project validation, the local Dexie database, and
+  repository reads/writes; components do not access IndexedDB directly.
 - `midi/`: bounded file/event validation, PPQ conversion, shared note validation,
   pure note grouping and serialization, and browser download handling.
 - `audio/`: sample constraints, shared instrument status, playback session cleanup,

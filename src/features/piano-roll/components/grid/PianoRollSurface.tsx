@@ -46,6 +46,7 @@ export function PianoRollSurface({
                     <div
                         ref={surfaceRef}
                         className="absolute inset-0 touch-none select-none"
+                        {...interactions.cursor.handlers}
                         onClick={(event) => {
                             interactions.handleCanvasClick(event);
                             editorRef.current?.focus({ preventScroll: true });
@@ -55,6 +56,7 @@ export function PianoRollSurface({
                         }
                         onPointerDown={(event) => {
                             interactions.handleCanvasPointerDown(event);
+                            interactions.cursor.handlePointerDown(event);
                             editorRef.current?.focus({ preventScroll: true });
                         }}
                     >

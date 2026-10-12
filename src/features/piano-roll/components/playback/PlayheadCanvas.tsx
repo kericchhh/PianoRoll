@@ -24,6 +24,7 @@ export function PlayheadCanvas({
         playbackState,
         getPlaybackTick,
         requestRedraw: editor.requestRedraw,
+        preserveViewOnStopRef: editor.preserveViewOnStopRef,
     });
     return (
         <canvas

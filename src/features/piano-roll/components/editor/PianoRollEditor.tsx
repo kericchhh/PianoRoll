@@ -16,6 +16,8 @@ import type { PlaybackState } from '@/features/piano-roll/audio/playbackTypes';
 import { HistoryControls } from '@/features/piano-roll/components/toolbar/HistoryControls';
 import { EditorSettingsPanel } from '@/features/piano-roll/components/editor/EditorSettingsPanel';
 import type { Note } from '@/features/piano-roll/types';
+import { useProjectPersistence } from '@/features/piano-roll/hooks/projects/useProjectPersistence';
+import { ProjectPanel } from '@/features/piano-roll/components/projects/ProjectPanel';
 
 type Props = {
     playbackControls?: ReactNode;
@@ -43,6 +45,21 @@ export function PianoRollEditor({
     const editor = usePianoRollEditor(endTick, onTogglePlayback);
     const { notes: editorNotes, viewport, requestRedraw } = editor;
     const importedNoteRef = useRef<Note | null>(null);
+    const projectControls = useProjectPersistence({
+        barCount,
+        canLoad: () => editor.interactions.gestureModeRef.current === 'idle',
+        onBeforeLoad: () => {
+            editor.setPreserveViewOnStop(
+                playbackState !== 'stopped' && !!onStopPlayback,
+            );
+            onStopPlayback?.();
+        },
+        onLoaded: (project) => {
+            importedNoteRef.current = null;
+            setBarCount(project.barCount);
+            editor.interactions.activateNote(null);
+        },
+    });
     useEffect(() => {
         const note = importedNoteRef.current;
         if (!note) return;
@@ -60,6 +77,7 @@ export function PianoRollEditor({
                 settingsControls={
                     <EditorSettingsPanel
                         sampleControls={sampleControls}
+                        projectControls={<ProjectPanel {...projectControls} />}
                         onBeforeImport={onStopPlayback}
                         onImported={(notes, importedEndTick) => {
                             const bars = Math.ceil(

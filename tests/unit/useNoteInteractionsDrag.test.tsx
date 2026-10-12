@@ -207,12 +207,13 @@ test('all origin ghosts are drawn beneath the moving notes when their positions 
                 : null;
         },
     );
-    let frame: FrameRequestCallback | undefined;
+    const frames = new Map<number, FrameRequestCallback>();
+    let nextFrameId = 0;
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
-        frame = callback;
-        return 1;
+        frames.set(++nextFrameId, callback);
+        return nextFrameId;
     });
-    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => frames.delete(id));
     useNoteStore.getState().addNote({ ...original, id: 'a', pitch: 72 });
     useNoteStore
         .getState()
@@ -235,7 +236,11 @@ test('all origin ghosts are drawn beneath the moving notes when their positions 
     act(() =>
         drag({ movement: [60, 20], last: false } as Parameters<typeof drag>[0]),
     );
-    act(() => frame?.(0));
+    act(() => {
+        for (const [id, callback] of [...frames]) {
+            if (frames.delete(id)) callback(0);
+        }
+    });
 
     expect(
         rectangles.filter(([color]) => color !== PIANO_ROLL_COLORS.blackKeyRow),

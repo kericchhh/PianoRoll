@@ -21,8 +21,12 @@ const tabClass =
 
 export function EditorSettingsPanel({
     sampleControls,
+    projectControls,
     ...midiOptions
-}: MidiImportOptions & { sampleControls?: ReactNode }) {
+}: MidiImportOptions & {
+    sampleControls?: ReactNode;
+    projectControls?: ReactNode;
+}) {
     const [open, setOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('midi');
     const reducedMotion = usePrefersReducedMotion();
@@ -41,6 +45,7 @@ export function EditorSettingsPanel({
             ),
         },
         { value: 'instrument', content: sampleControls },
+        { value: 'project', content: projectControls },
     ];
 
     return (
@@ -93,12 +98,15 @@ export function EditorSettingsPanel({
                         <Tabs.Trigger value="instrument" className={tabClass}>
                             Instrument
                         </Tabs.Trigger>
+                        <Tabs.Trigger value="project" className={tabClass}>
+                            Project
+                        </Tabs.Trigger>
                         <motion.span
                             aria-hidden="true"
-                            className="pointer-events-none absolute bottom-0 left-0 h-0.5 w-1/2 bg-primary"
+                            className="pointer-events-none absolute bottom-0 left-0 h-0.5 w-1/3 bg-primary"
                             initial={false}
                             animate={{
-                                x: activeTab === 'midi' ? '0%' : '100%',
+                                x: `${panels.findIndex((panel) => panel.value === activeTab) * 100}%`,
                             }}
                             transition={transition}
                         />

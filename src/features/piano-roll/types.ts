@@ -18,6 +18,7 @@ export interface NoteStoreState {
     addNote: (note: Note, selectAdded?: boolean) => void;
     pasteNotes: (notes: readonly Note[]) => void;
     importNotes: (notes: readonly Note[]) => void;
+    replaceNotes: (notes: readonly Note[]) => void;
     selectNote: (id: string) => void;
     selectNotes: (ids: readonly string[]) => void;
     toggleNoteSelection: (id: string) => void;

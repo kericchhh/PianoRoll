@@ -19,6 +19,48 @@ function makeNote(id: string): Note {
 
 beforeEach(() => useNoteStore.setState(useNoteStore.getInitialState()));
 
+test('project replacement clones exact notes and clears selection and both history stacks atomically', () => {
+    const store = useNoteStore.getState();
+    store.addNote({ ...makeNote('before'), selected: true });
+    store.addNote(makeNote('undone'));
+    store.undo();
+    expect(useNoteStore.getState().undoStack).toHaveLength(1);
+    expect(useNoteStore.getState().redoStack).toHaveLength(1);
+    const imported = {
+        ...makeNote('saved-id'),
+        startTick: 80003,
+        durationTicks: 1,
+        velocity: 0,
+        selected: true,
+    };
+    const updates = vi.fn();
+    const unsubscribe = useNoteStore.subscribe(updates);
+
+    store.replaceNotes([imported]);
+    unsubscribe();
+
+    const after = useNoteStore.getState();
+    expect(updates).toHaveBeenCalledOnce();
+    expect(after.notes).toEqual({
+        [imported.id]: { ...imported, selected: false },
+    });
+    expect(after.notes[imported.id]).not.toBe(imported);
+    expect(imported.selected).toBe(true);
+    expect(after.undoStack).toEqual([]);
+    expect(after.redoStack).toEqual([]);
+    expect(after.undo()).toBeNull();
+    expect(after.redo()).toBeNull();
+});
+
+test('loading an empty project clears notes and edit history', () => {
+    const store = useNoteStore.getState();
+    store.addNote(makeNote('before'));
+    store.replaceNotes([]);
+    expect(useNoteStore.getState().notes).toEqual({});
+    expect(useNoteStore.getState().undoStack).toEqual([]);
+    expect(useNoteStore.getState().redoStack).toEqual([]);
+});
+
 test('pasting replaces selection and inserts the entire group in one immutable update', () => {
     const store = useNoteStore.getState();
     store.addNote({ ...makeNote('a'), selected: true });

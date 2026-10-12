@@ -26,6 +26,11 @@ export function usePianoRollEditor(
     const surfaceRef = useRef<HTMLDivElement>(null);
     const overlayRef = useRef<HTMLDivElement>(null);
     const playheadDrawRef = useRef<(() => void) | null>(null);
+    const preserveViewOnStopRef = useRef(false);
+    const cursorRefreshRef = useRef<(() => void) | null>(null);
+    const setPreserveViewOnStop = useCallback((preserve: boolean) => {
+        preserveViewOnStopRef.current = preserve;
+    }, []);
     const activeNoteRef = useRef<string | null>(null);
     const dragCandidateRef = useRef<Note | null>(null);
     const previewRef = useRef<Record<string, Note> | null>(null);
@@ -37,7 +42,7 @@ export function usePianoRollEditor(
         [index],
     );
 
-    const requestRedraw = useCanvasRenderer({
+    const redrawCanvas = useCanvasRenderer({
         canvasRef,
         rulerRef,
         overlayRef,
@@ -51,6 +56,10 @@ export function usePianoRollEditor(
         height,
         endTick,
     });
+    const requestRedraw = useCallback(() => {
+        redrawCanvas();
+        cursorRefreshRef.current?.();
+    }, [redrawCanvas]);
     const onReveal = useCallback(
         (moved: readonly Note[]) => {
             reveal(moved);
@@ -74,6 +83,13 @@ export function usePianoRollEditor(
         surfaceRef,
         onTogglePlayback,
     });
+    const refreshCursor = interactions.cursor.refreshCursor;
+    useEffect(() => {
+        cursorRefreshRef.current = refreshCursor;
+        return () => {
+            cursorRefreshRef.current = null;
+        };
+    }, [refreshCursor]);
     useZoomPan({
         canvasRef,
         surfaceRef,
@@ -105,6 +121,8 @@ export function usePianoRollEditor(
         requestRedraw,
         playheadDrawRef,
         viewport,
+        preserveViewOnStopRef,
+        setPreserveViewOnStop,
         canvasRef,
         rulerRef,
         surfaceRef,

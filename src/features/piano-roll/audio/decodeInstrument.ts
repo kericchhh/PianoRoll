@@ -20,7 +20,6 @@ export async function decodeInstrument(
     validateInstrumentMapping(draft.files);
     const samples: CustomSample[] = [];
     let decodedBytes = 0;
-    // Decode sequentially so a folder cannot start hundreds of decoders at once.
     for (const { file, rootPitch } of draft.files) {
         if (!isCurrent()) return null;
         await waitForDecoder?.();

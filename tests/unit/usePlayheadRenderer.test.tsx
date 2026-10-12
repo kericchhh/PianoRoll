@@ -16,6 +16,7 @@ function setup(initialState: PlaybackState = 'playing') {
     const drawRef = { current: null as (() => void) | null };
     const scaleRef = { current: 0.5 };
     const scrollRef = { current: 0 };
+    const preserveViewOnStopRef = { current: false };
     const requestRedraw = vi.fn();
     const getPlaybackTick = vi.fn(() => tick);
     const viewport = {
@@ -47,6 +48,7 @@ function setup(initialState: PlaybackState = 'playing') {
                 playbackState: state,
                 getPlaybackTick,
                 requestRedraw,
+                preserveViewOnStopRef,
             });
         },
         { initialProps: { state: initialState, width: 800 } },
@@ -57,6 +59,7 @@ function setup(initialState: PlaybackState = 'playing') {
         drawRef,
         scaleRef,
         scrollRef,
+        preserveViewOnStopRef,
         requestRedraw,
         setTick(value: number) {
             tick = value;
@@ -137,3 +140,28 @@ test('completion resets the view after the scheduled stop reaches tick zero, the
     expect(model.scrollRef.current).toBe(300);
     expect(model.canvas.dataset.x).toBe('-300.000');
 });
+
+test.each(['playing', 'paused'] as const)(
+    'a project load from %s preserves pan once and a later normal completion resets it',
+    (state) => {
+        const model = setup(state);
+        model.scrollRef.current = 320;
+        model.preserveViewOnStopRef.current = true;
+        model.setTick(0);
+        model.rerender({ state: 'stopped', width: 800 });
+        act(() => model.advance(300));
+        expect(model.scrollRef.current).toBe(320);
+        expect(model.canvas.dataset.x).toBe('-320.000');
+        expect(model.preserveViewOnStopRef.current).toBe(false);
+
+        model.rerender({ state: 'playing', width: 800 });
+        model.setTick(2400);
+        act(() => model.advance());
+        expect(model.scrollRef.current).toBeGreaterThan(0);
+        model.setTick(0);
+        model.rerender({ state: 'stopped', width: 800 });
+        act(() => model.advance(300));
+        expect(model.scrollRef.current).toBe(0);
+        expect(model.canvas.dataset.x).toBe('0.000');
+    },
+);
