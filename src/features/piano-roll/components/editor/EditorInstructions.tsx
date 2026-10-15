@@ -10,7 +10,10 @@ export function EditorInstructions({ id }: { id: string }) {
             group or last paste. Ctrl or Command+Z undoes an edit; add Shift to
             redo. Space toggles playback. Enter toggles a focused note-list
             button's selection. Use the New note pitch and Start tick fields
-            followed by Add note to insert a note.
+            followed by Add note to insert a note. Open Editor controls for
+            Timeline view buttons that zoom and pan without editing notes, and
+            Selected notes buttons that move and resize the whole selection
+            without dragging.
         </p>
     );
 }

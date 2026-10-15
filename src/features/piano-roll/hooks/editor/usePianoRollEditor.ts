@@ -13,6 +13,7 @@ import { useCanvasRenderer } from '@/features/piano-roll/hooks/editor/useCanvasR
 import { useNoteInteractions } from '@/features/piano-roll/hooks/notes/useNoteInteractions';
 import { usePianoRollViewport } from '@/features/piano-roll/hooks/editor/usePianoRollViewport';
 import { useZoomPan } from '@/features/piano-roll/hooks/editor/useZoomPan';
+import { useViewportActions } from '@/features/piano-roll/hooks/editor/useViewportActions';
 
 export function usePianoRollEditor(
     endTick: number,
@@ -43,6 +44,7 @@ export function usePianoRollEditor(
     );
 
     const redrawCanvas = useCanvasRenderer({
+        editorRef: viewport.editorRef,
         canvasRef,
         rulerRef,
         overlayRef,
@@ -84,6 +86,15 @@ export function usePianoRollEditor(
         onTogglePlayback,
     });
     const refreshCursor = interactions.cursor.refreshCursor;
+    const viewportActions = useViewportActions({
+        scaleRef,
+        scrollRef,
+        width,
+        endTick,
+        gestureModeRef: interactions.gestureModeRef,
+        requestRedraw,
+        announce: interactions.announce,
+    });
     useEffect(() => {
         cursorRefreshRef.current = refreshCursor;
         return () => {
@@ -117,6 +128,7 @@ export function usePianoRollEditor(
     }, [clamp, requestRedraw]);
 
     return {
+        viewportActions,
         endTick,
         requestRedraw,
         playheadDrawRef,

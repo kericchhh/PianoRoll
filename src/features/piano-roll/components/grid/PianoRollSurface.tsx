@@ -10,6 +10,7 @@ import { NoteContextMenuContent } from '@/features/piano-roll/components/notes/N
 import { NoteList } from '@/features/piano-roll/components/notes/NoteList';
 import { EditorInstructions } from '@/features/piano-roll/components/editor/EditorInstructions';
 import { EditorAnnouncement } from '@/features/piano-roll/components/editor/EditorAnnouncement';
+import { EditorControlsPopover } from '@/features/piano-roll/components/editor/EditorControlsPopover';
 
 export function PianoRollSurface({
     editor,
@@ -80,6 +81,7 @@ export function PianoRollSurface({
                     onDeleteNote={interactions.deleteNote}
                 />
             </ContextMenu>
+            <EditorControlsPopover editor={editor} />
             <EditorInstructions id={instructionsId} />
             <NoteList notes={notes} onSelect={interactions.selectNote} />
             <EditorAnnouncement announcement={interactions.announcement} />

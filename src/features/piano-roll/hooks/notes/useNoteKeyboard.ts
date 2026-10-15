@@ -1,18 +1,12 @@
 import type { KeyboardEvent, RefObject } from 'react';
-import type { GestureMode, Note } from '@/features/piano-roll/types';
+import type { GestureMode } from '@/features/piano-roll/types';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
-import { moveNoteGroup } from '@/features/piano-roll/utils/notes/moveNoteGroup';
-import { resizeNoteGroup } from '@/features/piano-roll/utils/notes/resizeNoteGroup';
 import { SNAP_TICKS } from '@/features/piano-roll/constants';
 
 type Options = {
-    endTick: number;
     gestureModeRef: RefObject<GestureMode>;
-    commitMove: (originals: readonly Note[], moved: readonly Note[]) => void;
-    commitResize: (
-        originals: readonly Note[],
-        resized: readonly Note[],
-    ) => void;
+    moveSelection: (tickDelta: number, pitchDelta: number) => void;
+    resizeSelection: (tickDelta: number) => void;
     deleteNotes: (ids: readonly string[]) => void;
     copyNotes: () => void;
     pasteNotes: () => void;
@@ -22,10 +16,9 @@ type Options = {
 };
 
 export function useNoteKeyboard({
-    endTick,
     gestureModeRef,
-    commitMove,
-    commitResize,
+    moveSelection,
+    resizeSelection,
     deleteNotes,
     copyNotes,
     pasteNotes,
@@ -96,13 +89,8 @@ export function useNoteKeyboard({
         if (event.shiftKey) {
             if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
             event.preventDefault();
-            commitResize(
-                selected,
-                resizeNoteGroup(
-                    selected,
-                    event.key === 'ArrowLeft' ? -SNAP_TICKS : SNAP_TICKS,
-                    endTick,
-                ),
+            resizeSelection(
+                event.key === 'ArrowLeft' ? -SNAP_TICKS : SNAP_TICKS,
             );
             return;
         }
@@ -125,9 +113,6 @@ export function useNoteKeyboard({
                 return;
         }
         event.preventDefault();
-        commitMove(
-            selected,
-            moveNoteGroup(selected, tickDelta, pitchDelta, endTick),
-        );
+        moveSelection(tickDelta, pitchDelta);
     };
 }

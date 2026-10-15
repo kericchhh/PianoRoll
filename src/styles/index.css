@@ -128,7 +128,7 @@
 .note-list:focus-within {
     position: absolute;
     inset: auto 12px 12px;
-    z-index: 20;
+    z-index: 60;
     width: auto;
     height: auto;
     max-height: 40%;

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Settings2, X } from 'lucide-react';
+import { SlidersHorizontal, X } from 'lucide-react';
 import { Tabs } from 'radix-ui';
 import { motion } from 'motion/react';
 import { Button } from '@/shared/components/ui/button';
@@ -58,7 +58,7 @@ export function EditorSettingsPanel({
         >
             <SheetTrigger asChild>
                 <Button type="button" variant="outline">
-                    <Settings2 aria-hidden="true" />
+                    <SlidersHorizontal aria-hidden="true" />
                     Settings
                 </Button>
             </SheetTrigger>
@@ -121,7 +121,7 @@ export function EditorSettingsPanel({
                                 asChild
                             >
                                 <motion.div
-                                    className="absolute inset-0 overflow-hidden focus-visible:outline-2 focus-visible:outline-ring"
+                                    className="absolute inset-0 overflow-x-hidden overflow-y-auto focus-visible:outline-2 focus-visible:outline-ring"
                                     inert={activeTab !== value}
                                     aria-hidden={activeTab !== value}
                                     style={{

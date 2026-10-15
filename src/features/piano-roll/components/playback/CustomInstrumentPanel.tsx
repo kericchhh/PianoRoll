@@ -32,7 +32,7 @@ export function CustomInstrumentPanel({
     return (
         <section
             aria-label="Instrument samples"
-            className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4"
+            className="flex h-full min-h-fit flex-col gap-3 p-4"
         >
             <h2 className="font-bold">Instrument</h2>
             <p className="text-sm wrap-anywhere">

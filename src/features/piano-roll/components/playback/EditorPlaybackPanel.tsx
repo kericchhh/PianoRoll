@@ -11,7 +11,7 @@ export function EditorPlaybackPanel({
     return (
         <section
             aria-label="Playback"
-            className="flex flex-col justify-center gap-3 border-border px-4 py-3 lg:border-l-2"
+            className="flex flex-col justify-start gap-3 border-border px-4 py-3 lg:border-l-2"
         >
             <h2 className="text-sm font-bold">Playback</h2>
             <div className="flex items-center gap-2">

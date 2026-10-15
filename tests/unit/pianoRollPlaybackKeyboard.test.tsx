@@ -168,10 +168,9 @@ test.each<GestureMode>(['move', 'resize', 'pan', 'marquee', 'select'])(
         const onTogglePlayback = vi.fn();
         function KeyboardHarness() {
             const onKeyDown = useNoteKeyboard({
-                endTick: 15360,
                 gestureModeRef: { current: mode },
-                commitMove: vi.fn(),
-                commitResize: vi.fn(),
+                moveSelection: vi.fn(),
+                resizeSelection: vi.fn(),
                 deleteNotes: vi.fn(),
                 copyNotes: vi.fn(),
                 pasteNotes: vi.fn(),

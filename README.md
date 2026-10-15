@@ -35,6 +35,18 @@ Keyboard users can create a note with the New note pitch / Start tick form.
 Click a note to select it; Ctrl/Cmd-click toggles selection, and Ctrl/Cmd-drag
 empty grid replaces selection with overlapping notes. Shift-drag pans;
 Ctrl-wheel zooms. Arrow keys move the selection and Delete removes it.
+Timeline view buttons provide keyboard and click alternatives: zoom changes by
+a factor of 1.25 around the viewport center; pan moves half the visible width.
+Selected notes buttons move the whole selection by one semitone or 120 ticks,
+or change its duration by 120 ticks. These use the same bounds, history, and
+announcements as keyboard editing, and keep focus on the activated button.
+Both groups live in a compact popover opened by the circular Editor controls
+button at the grid's bottom-left. The panel background is transparent; icon
+buttons keep readable backings, tooltips, and accessible names. It stays open
+while drawing, selecting, panning, or focusing the editor. Click the circle again
+or press Escape to close it. Escape returns focus to the trigger. Opening the
+panel does not resize the canvas or move Playback. Its brief entrance fade
+respects reduced motion. Closed controls leave keyboard and screen-reader navigation.
 Space plays or pauses from the grid, selected-note overlay, or note list.
 Enter toggles a focused note-list button's selection.
 Ctrl/Cmd+C copies the selected notes within this tab. Ctrl/Cmd+V pastes
@@ -48,6 +60,9 @@ imported MIDI retains shorter durations, which can be extended to that minimum.
 Notes extending past a shortened timeline may be shortened but cannot be
 extended further; resizing does not force them inside the timeline.
 Movement reveals the selection without changing the stored MIDI coordinates.
+When playback or viewport navigation hides a focused selected-note overlay,
+focus moves to the editor so keyboard editing and playback remain available.
+Piano keys use a black-and-white inset focus indicator visible on either key face.
 
 The grid cursor follows the action: crosshair for drawing or marquee selection,
 move over note bodies, and horizontal resize at an eligible note's right edge.
@@ -75,6 +90,9 @@ with Escape or its close button, and returns focus to Settings. Motion for React
 animates the panel; reduced motion skips the animation and follows live preference
 changes. File buttons stay focusable while busy, prevent duplicate submissions,
 and allow choosing the same file again. Errors have inline accessible messages.
+On short or highly zoomed viewports, active tab content scrolls while the Settings
+header and tabs stay fixed. Instrument mappings retain their own scrolling list
+when the panel has enough height.
 
 Import MIDI replaces the composition in one reversible `IMPORT_NOTES` command.
 Undo restores previous notes, order, and selection; redo restores the imported

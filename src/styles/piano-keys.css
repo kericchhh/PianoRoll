@@ -19,8 +19,24 @@
 
 .piano-key:focus-visible {
     z-index: 1;
-    outline: 2px solid var(--ring);
+    outline: 2px solid transparent;
     outline-offset: -2px;
+}
+
+.piano-key:focus-visible::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border: 2px solid var(--studio-black);
+    box-shadow: inset 0 0 0 2px var(--studio-bone);
+    pointer-events: none;
+}
+
+@media (forced-colors: active) {
+    .piano-key:focus-visible::after {
+        border-color: Highlight;
+    }
 }
 
 .piano-key:disabled {

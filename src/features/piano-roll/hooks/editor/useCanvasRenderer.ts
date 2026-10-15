@@ -12,6 +12,7 @@ import { drawTimeRuler } from '@/features/piano-roll/rendering/grid/drawTimeRule
 import { RULER_HEIGHT } from '@/features/piano-roll/constants';
 
 type Options = {
+    editorRef: RefObject<HTMLDivElement | null>;
     canvasRef: RefObject<HTMLCanvasElement | null>;
     rulerRef?: RefObject<HTMLCanvasElement | null>;
     overlayRef: RefObject<HTMLDivElement | null>;
@@ -33,6 +34,7 @@ export function useCanvasRenderer(options: Options) {
     const rulerContextRef = useRef<CanvasRenderingContext2D | null>(null);
     const rulerViewRef = useRef<string | null>(null);
     const {
+        editorRef,
         canvasRef,
         rulerRef,
         overlayRef,
@@ -142,8 +144,11 @@ export function useCanvasRenderer(options: Options) {
                     width,
                     x + note.durationTicks * view.pixelsPerTick,
                 );
-            overlay.style.display =
-                right > left && y >= 0 && y < height ? 'block' : 'none';
+            const visible = right > left && y >= 0 && y < height;
+            if (!visible && overlay.contains(document.activeElement)) {
+                editorRef.current?.focus({ preventScroll: true });
+            }
+            overlay.style.display = visible ? 'block' : 'none';
             overlay.style.left = `${(left * canvas.clientWidth) / width + canvas.clientLeft}px`;
             overlay.style.top = `${(y * canvas.clientHeight) / height + canvas.clientTop}px`;
             overlay.style.width = `${(Math.max(0, right - left) * canvas.clientWidth) / width}px`;
@@ -155,6 +160,7 @@ export function useCanvasRenderer(options: Options) {
         activeNoteRef,
         canvasRef,
         endTick,
+        editorRef,
         getView,
         height,
         index,

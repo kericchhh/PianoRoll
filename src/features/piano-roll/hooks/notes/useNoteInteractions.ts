@@ -11,6 +11,7 @@ import { useNoteDrag } from '@/features/piano-roll/hooks/notes/useNoteDrag';
 import { useNotePointerDown } from '@/features/piano-roll/hooks/notes/useNotePointerDown';
 import { useNoteHistory } from '@/features/piano-roll/hooks/notes/useNoteHistory';
 import { useNoteCursor } from '@/features/piano-roll/hooks/notes/useNoteCursor';
+import { useSelectionEdits } from '@/features/piano-roll/hooks/notes/useSelectionEdits';
 
 export function useNoteInteractions(options: NoteInteractionOptions) {
     const {
@@ -53,13 +54,17 @@ export function useNoteInteractions(options: NoteInteractionOptions) {
         onReveal,
         announce,
     });
-    const handleEditorKeyDown = useNoteKeyboard({
-        undo: history.undo,
-        redo: history.redo,
+    const selectionEdits = useSelectionEdits({
         endTick,
         gestureModeRef,
         commitMove,
         commitResize,
+    });
+    const handleEditorKeyDown = useNoteKeyboard({
+        undo: history.undo,
+        redo: history.redo,
+        ...selectionEdits,
+        gestureModeRef,
         deleteNotes,
         copyNotes,
         pasteNotes,
@@ -161,6 +166,7 @@ export function useNoteInteractions(options: NoteInteractionOptions) {
     }
 
     return {
+        ...selectionEdits,
         cursor,
         undo: history.undo,
         redo: history.redo,
