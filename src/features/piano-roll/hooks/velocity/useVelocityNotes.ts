@@ -8,12 +8,12 @@ type VelocityPreview = { id: string; velocity: number };
 
 export function useVelocityNotes(editor: PianoRollEditorModel) {
     const [activeId, setActiveId] = useState<string | null>(null);
-    const [revision, setRevision] = useState(0);
     const previewRef = useRef<VelocityPreview | null>(null);
     const pendingFocusRef = useRef<string | null>(null);
     const originRef = useRef<{
         note: Note;
         notes: Record<string, Note>;
+        resetPreview: () => void;
     } | null>(null);
     const ordered = useMemo(
         () =>
@@ -72,18 +72,18 @@ export function useVelocityNotes(editor: PianoRollEditorModel) {
                 useNoteStore.getState().notes === origin.notes
             )
                 commit(origin.note.id, value.velocity);
-            setRevision((previous) => previous + 1);
+            origin.resetPreview();
             requestRedraw();
         },
         [commit, requestRedraw, gestureModeRef],
     );
     const begin = useCallback(
-        (id: string) => {
+        (id: string, resetPreview: () => void) => {
             if (gestureModeRef.current !== 'idle') return false;
             const notes = useNoteStore.getState().notes;
             const note = notes[id];
             if (!note) return false;
-            originRef.current = { note, notes };
+            originRef.current = { note, notes, resetPreview };
             previewRef.current = { id, velocity: note.velocity };
             gestureModeRef.current = 'velocity';
             focusNote(id);
@@ -131,7 +131,6 @@ export function useVelocityNotes(editor: PianoRollEditorModel) {
     return {
         activeNote,
         activeId: activeNote?.id ?? null,
-        revision,
         previewRef,
         pendingFocusRef,
         begin,

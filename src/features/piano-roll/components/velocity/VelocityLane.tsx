@@ -1,10 +1,11 @@
-import { useEffect, useId, useRef, type RefObject } from 'react';
+import { useEffect, useId, useRef, useState, type RefObject } from 'react';
 import { motion } from 'motion/react';
 import type { PianoRollEditorModel } from '@/features/piano-roll/hooks/editor/usePianoRollEditor';
 import { usePrefersReducedMotion } from '@/shared/hooks/usePrefersReducedMotion';
 import { useVelocityPanel } from '@/features/piano-roll/hooks/velocity/useVelocityPanel';
 import { useVelocityNotes } from '@/features/piano-roll/hooks/velocity/useVelocityNotes';
 import { useVelocityWindow } from '@/features/piano-roll/hooks/velocity/useVelocityWindow';
+import { useVelocityMountQueue } from '@/features/piano-roll/hooks/velocity/useVelocityMountQueue';
 import { VelocityLaneHandle } from './VelocityLaneHandle';
 import { VelocityNoteSlider } from './VelocityNoteSlider';
 
@@ -21,17 +22,26 @@ export function VelocityLane({
         workspaceRef,
         editor.interactions.gestureModeRef,
     );
+    const [contentOpen, setContentOpen] = useState(panel.open);
+    if (panel.open && !contentOpen) setContentOpen(true);
     const notes = useVelocityNotes(editor);
     const { finish } = notes;
     const { handleRef } = panel;
     const bodyRef = useRef<HTMLDivElement>(null);
+    const focusWithinRef = useRef(false);
     const bodyId = useId(),
         instructionsId = useId();
     const reducedMotion = usePrefersReducedMotion();
-    const { visible, register, elementsRef } = useVelocityWindow(
-        editor,
-        panel.open,
-        bodyRef,
+    const {
+        visible: candidates,
+        register,
+        elementsRef,
+    } = useVelocityWindow(editor, contentOpen, bodyRef);
+    const { visible, busy } = useVelocityMountQueue(
+        candidates,
+        contentOpen,
+        notes.activeId,
+        !panel.open,
     );
     const { pendingFocusRef, activeNote, activeId } = notes;
     const entryId = visible.some((note) => note.id === activeId)
@@ -40,7 +50,6 @@ export function VelocityLane({
     useEffect(() => {
         const id = pendingFocusRef.current;
         if (!id) return;
-        // Newly mounted Radix thumbs become focusable after their initial commit.
         const frame = requestAnimationFrame(() => {
             if (pendingFocusRef.current !== id) return;
             const thumb = elementsRef.current
@@ -56,8 +65,12 @@ export function VelocityLane({
     useEffect(() => {
         if (panel.open) return;
         finish(true);
-        if (bodyRef.current?.contains(document.activeElement))
+        if (
+            bodyRef.current?.contains(document.activeElement) ||
+            (focusWithinRef.current && document.activeElement === document.body)
+        )
             handleRef.current?.focus({ preventScroll: true });
+        focusWithinRef.current = false;
     }, [panel.open, finish, handleRef]);
     return (
         <section
@@ -65,29 +78,46 @@ export function VelocityLane({
             className="col-span-2 min-w-0 overflow-hidden bg-background"
         >
             <VelocityLaneHandle panel={panel} bodyId={bodyId} />
+            <p aria-live="polite" aria-atomic="true" className="sr-only">
+                {busy ? 'Loading note velocity controls.' : ''}
+            </p>
             <motion.div
                 ref={bodyRef}
                 id={bodyId}
                 inert={!panel.open}
                 aria-hidden={!panel.open}
+                aria-busy={busy}
                 aria-describedby={instructionsId}
                 role="group"
                 aria-label="Note velocities"
                 tabIndex={visible.length === 0 && activeNote ? 0 : -1}
-                className="overflow-hidden focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+                className="relative overflow-hidden focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
                 initial={false}
                 animate={{
                     height: panel.open ? panel.height : 0,
                     opacity: panel.open ? 1 : 0,
                 }}
                 transition={{
-                    duration: reducedMotion || panel.dragging ? 0 : 0.2,
-                    ease: [0.22, 1, 0.36, 1],
+                    duration: reducedMotion || panel.dragging ? 0 : 0.24,
+                    ease: [0.4, 0, 0.2, 1],
+                }}
+                onAnimationComplete={() => {
+                    if (!panel.open) setContentOpen(false);
                 }}
                 onKeyDownCapture={notes.handleKeyDown}
+                onFocusCapture={() => {
+                    focusWithinRef.current = true;
+                }}
+                onBlurCapture={(event) => {
+                    if (
+                        event.relatedTarget &&
+                        !event.currentTarget.contains(event.relatedTarget)
+                    )
+                        focusWithinRef.current = false;
+                }}
             >
                 <div
-                    className="grid min-w-0 grid-cols-[var(--pitch-key-width)_minmax(0,1fr)]"
+                    className="absolute inset-x-0 bottom-0 grid min-w-0 grid-cols-[var(--pitch-key-width)_minmax(0,1fr)]"
                     style={{ height: panel.contentHeight }}
                 >
                     <div
@@ -132,7 +162,6 @@ export function VelocityLane({
                                 note={note}
                                 tabIndex={note.id === entryId ? 0 : -1}
                                 register={register}
-                                revision={notes.revision}
                                 begin={notes.begin}
                                 preview={notes.preview}
                                 finish={notes.finish}

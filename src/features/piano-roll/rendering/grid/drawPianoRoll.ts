@@ -64,6 +64,7 @@ export function drawPianoRoll(context: CanvasRenderingContext2D, scene: Scene) {
     const displayed = new Map(
         queryNoteIndex(index, region).map((note) => [note.id, note]),
     );
+    let orderChanged = false;
     if (previews) {
         for (const [id, preview] of Object.entries(previews)) {
             const origin = index.notes[id];
@@ -74,13 +75,15 @@ export function drawPianoRoll(context: CanvasRenderingContext2D, scene: Scene) {
                     view,
                     PIANO_ROLL_COLORS.ghost,
                 );
-            if (origin && visible(preview)) displayed.set(id, preview);
-            else displayed.delete(id);
+            if (origin && visible(preview)) {
+                if (!displayed.has(id)) orderChanged = true;
+                displayed.set(id, preview);
+            } else displayed.delete(id);
         }
     }
-    const ordered = [...displayed.values()].sort(
-        (a, b) => index.order.get(a.id)! - index.order.get(b.id)!,
-    );
+    const ordered = [...displayed.values()];
+    if (orderChanged)
+        ordered.sort((a, b) => index.order.get(a.id)! - index.order.get(b.id)!);
     for (const note of ordered) drawNote(context, note, view);
     if (marquee) drawMarquee(context, marquee);
 }

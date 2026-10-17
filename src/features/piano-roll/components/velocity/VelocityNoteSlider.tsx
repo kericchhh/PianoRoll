@@ -1,4 +1,4 @@
-import { memo, useLayoutEffect, useRef, useState } from 'react';
+import { memo, useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { Slider } from '@/shared/components/ui/slider';
 import type { Note } from '@/features/piano-roll/types';
 import type { VelocityNotes } from '@/features/piano-roll/hooks/velocity/useVelocityNotes';
@@ -6,13 +6,7 @@ import { pitchToNoteName } from '@/features/piano-roll/utils/notes/pitchToNoteNa
 
 type Props = Pick<
     VelocityNotes,
-    | 'revision'
-    | 'begin'
-    | 'preview'
-    | 'finish'
-    | 'commit'
-    | 'focusNote'
-    | 'previewRef'
+    'begin' | 'preview' | 'finish' | 'commit' | 'focusNote' | 'previewRef'
 > & {
     note: Note;
     tabIndex: number;
@@ -23,7 +17,6 @@ export const VelocityNoteSlider = memo(function VelocityNoteSlider({
     note,
     tabIndex,
     register,
-    revision,
     begin,
     preview,
     finish,
@@ -31,10 +24,14 @@ export const VelocityNoteSlider = memo(function VelocityNoteSlider({
     focusNote,
     previewRef,
 }: Props) {
+    const [revision, setRevision] = useState(0);
     const key = `${note.velocity}:${revision}`;
     const [draft, setDraft] = useState({ key, value: note.velocity });
     const value = draft.key === key ? draft.value : note.velocity;
     const pointerRef = useRef(false);
+    const resetPreview = useCallback(() => {
+        setRevision((previous) => previous + 1);
+    }, []);
     const elementRef = useRef<HTMLDivElement>(null);
     useLayoutEffect(() => {
         register(note.id, elementRef.current);
@@ -65,7 +62,7 @@ export const VelocityNoteSlider = memo(function VelocityNoteSlider({
                         'h-2 w-[var(--velocity-bar-width)] border-0 bg-foreground',
                 }}
                 onPointerDown={(event) => {
-                    if (event.button !== 0 || !begin(note.id))
+                    if (event.button !== 0 || !begin(note.id, resetPreview))
                         event.preventDefault();
                     else pointerRef.current = true;
                 }}

@@ -571,6 +571,10 @@ test('one thousand visible sliders mount and a target drag keeps neighboring DOM
     const before = await read(page);
     const started = await page.evaluate(() => performance.now());
     await toggle(page).click();
+    await expect(lane(page).getByRole('slider').first()).toBeVisible();
+    await expect(
+        lane(page).getByRole('group', { name: 'Note velocities', exact: true }),
+    ).toHaveAttribute('aria-busy', 'false', { timeout: 10000 });
     await expect(lane(page).getByRole('slider')).toHaveCount(1000);
     await expect(slider(page, 'p999')).toBeVisible();
     const mountMs = await page.evaluate(
@@ -955,4 +959,233 @@ test('a freshly drawn note and Ctrl/Cmd empty-grid taps allow the next velocity 
     await expect(
         page.getByRole('status', { name: 'Note editing status' }),
     ).toHaveText('Set velocity to 30 for pitch 70 at tick 240');
+});
+
+test('opening a dense lane mounts controls in bounded frames and exposes loading without editing the composition', async ({
+    page,
+}) => {
+    await seed(
+        page,
+        Array.from({ length: 1000 }, (_, index) => ({
+            ...first,
+            id: `batch-${index}`,
+            startTick: index,
+            selected: false,
+        })),
+    );
+    const before = await read(page);
+    await page.evaluate(() => {
+        const region = document.querySelector('[aria-label="Velocity lane"]')!;
+        const body = region.querySelector('[aria-label="Note velocities"]')!;
+        const seen = new Set<string>();
+        const counts = new Map<number, number>();
+        const busy = new Set<string | null>();
+        let frame = 0;
+        let frameId = 0;
+        const tick = () => {
+            frame++;
+            frameId = requestAnimationFrame(tick);
+        };
+        frameId = requestAnimationFrame(tick);
+        const observer = new MutationObserver((records) => {
+            busy.add(body.getAttribute('aria-busy'));
+            for (const record of records) {
+                for (const node of record.addedNodes) {
+                    if (!(node instanceof Element)) continue;
+                    const sliders = node.matches('[data-velocity-note]')
+                        ? [node]
+                        : [...node.querySelectorAll('[data-velocity-note]')];
+                    for (const slider of sliders) {
+                        const id = slider.getAttribute('data-velocity-note')!;
+                        if (seen.has(id)) continue;
+                        seen.add(id);
+                        counts.set(frame, (counts.get(frame) ?? 0) + 1);
+                    }
+                }
+            }
+        });
+        observer.observe(region, {
+            subtree: true,
+            childList: true,
+            attributes: true,
+            attributeFilter: ['aria-busy'],
+        });
+        Object.assign(window, {
+            velocityMountProbe: {
+                finish: () => {
+                    observer.disconnect();
+                    cancelAnimationFrame(frameId);
+                    return {
+                        count: seen.size,
+                        maxBatch: Math.max(0, ...counts.values()),
+                        busy: [...busy],
+                    };
+                },
+            },
+        });
+    });
+    await toggle(page).click();
+    await expect(lane(page).getByRole('slider').first()).toBeVisible();
+    await expect(
+        lane(page).getByRole('group', { name: 'Note velocities', exact: true }),
+    ).toHaveAttribute('aria-busy', 'false', { timeout: 10000 });
+    await expect(lane(page).getByRole('slider')).toHaveCount(1000);
+    const result = await page.evaluate(() =>
+        (
+            window as unknown as {
+                velocityMountProbe: {
+                    finish: () => {
+                        count: number;
+                        maxBatch: number;
+                        busy: (string | null)[];
+                    };
+                };
+            }
+        ).velocityMountProbe.finish(),
+    );
+    expect(result.count).toBe(1000);
+    expect(result.maxBatch).toBeLessThanOrEqual(40);
+    expect(result.busy).toEqual(expect.arrayContaining(['true', 'false']));
+    expect(await read(page)).toEqual(before);
+});
+
+for (const reason of ['toggle', 'workspace bounds'] as const) {
+    test(`closing the lane through ${reason} hands focused slider back to its resize handle`, async ({
+        page,
+    }) => {
+        await openLane(page);
+        await slider(page, 'b').focus();
+        const before = await read(page);
+        if (reason === 'toggle') {
+            await toggle(page).evaluate((element) =>
+                (element as HTMLButtonElement).click(),
+            );
+        } else {
+            await page.setViewportSize({ width: 1280, height: 240 });
+        }
+        await expect(toggle(page)).toHaveAttribute('aria-expanded', 'false');
+        await expect(
+            page.getByRole('separator', {
+                name: 'Resize velocity lane',
+                exact: true,
+            }),
+        ).toBeFocused();
+        await expect(slider(page, 'b')).toHaveCount(0);
+        expect(await read(page)).toEqual(before);
+    });
+}
+
+async function sampleLaneToggle(page: Page, open: boolean) {
+    return page.evaluate(async (opening) => {
+        const trigger = document.querySelector<HTMLButtonElement>(
+            '[aria-label="Toggle velocity lane"]',
+        )!;
+        const body = document.getElementById(
+            trigger.getAttribute('aria-controls')!,
+        )!;
+        trigger.click();
+        const frames: {
+            height: number;
+            bottomDelta: number;
+            sliderCount: number;
+            inert: boolean;
+            hidden: string | null;
+        }[] = [];
+        return new Promise<typeof frames>((resolve) => {
+            const sample = () => {
+                const bounds = body.getBoundingClientRect();
+                const content = body.firstElementChild!.getBoundingClientRect();
+                frames.push({
+                    height: bounds.height,
+                    bottomDelta: content.bottom - bounds.bottom,
+                    sliderCount:
+                        body.querySelectorAll('[role="slider"]').length,
+                    inert: body.inert,
+                    hidden: body.getAttribute('aria-hidden'),
+                });
+                const complete = opening
+                    ? bounds.height >= 159.9
+                    : bounds.height <= 0.1;
+                if (complete && frames.length > 1) resolve(frames);
+                else requestAnimationFrame(sample);
+            };
+            requestAnimationFrame(sample);
+        });
+    }, open);
+}
+
+test('opening keeps the velocity content anchored to the bottom throughout the slide', async ({
+    page,
+}) => {
+    const before = await read(page);
+    const frames = await sampleLaneToggle(page, true);
+    const moving = frames.filter(({ height }) => height > 0 && height < 160);
+    expect(moving.length).toBeGreaterThan(0);
+    for (const frame of moving)
+        expect(Math.abs(frame.bottomDelta)).toBeLessThanOrEqual(0.5);
+    await expect(slider(page, 'a')).toBeVisible();
+    expect(await read(page)).toEqual(before);
+});
+
+test('closing retains inert velocity sliders until the slide finishes and restores handle focus', async ({
+    page,
+}) => {
+    await openLane(page);
+    await slider(page, 'b').focus();
+    const before = await read(page);
+    const frames = await sampleLaneToggle(page, false);
+    const moving = frames.filter(({ height }) => height > 0 && height < 160);
+    expect(moving.length).toBeGreaterThan(0);
+    for (const frame of moving) {
+        expect(frame.sliderCount).toBe(2);
+        expect(frame.inert).toBe(true);
+        expect(frame.hidden).toBe('true');
+        expect(Math.abs(frame.bottomDelta)).toBeLessThanOrEqual(0.5);
+    }
+    await expect(lane(page).locator('[data-velocity-note]')).toHaveCount(0);
+    await expect(
+        page.getByRole('separator', {
+            name: 'Resize velocity lane',
+            exact: true,
+        }),
+    ).toBeFocused();
+    expect(await read(page)).toEqual(before);
+});
+
+test('reopening during closing reverses the slide without replacing velocity controls', async ({
+    page,
+}) => {
+    await openLane(page);
+    const before = await read(page);
+    const retained = await toggle(page).evaluate(async (element) => {
+        const trigger = element as HTMLButtonElement;
+        const body = document.getElementById(
+            trigger.getAttribute('aria-controls')!,
+        )!;
+        const control = body.querySelector('[data-velocity-note]');
+        trigger.click();
+        await new Promise<void>((resolve) => {
+            const sample = () => {
+                const height = body.getBoundingClientRect().height;
+                if (height < 150 && height > 0) {
+                    trigger.click();
+                    resolve();
+                } else requestAnimationFrame(sample);
+            };
+            requestAnimationFrame(sample);
+        });
+        await new Promise<void>((resolve) => {
+            const sample = () => {
+                if (body.getBoundingClientRect().height >= 159.9 && !body.inert)
+                    resolve();
+                else requestAnimationFrame(sample);
+            };
+            requestAnimationFrame(sample);
+        });
+        return body.querySelector('[data-velocity-note]') === control;
+    });
+    expect(retained).toBe(true);
+    await expect(slider(page, 'a')).toHaveAttribute('aria-valuenow', '80');
+    await expect(slider(page, 'b')).toHaveAttribute('aria-valuenow', '100');
+    expect(await read(page)).toEqual(before);
 });

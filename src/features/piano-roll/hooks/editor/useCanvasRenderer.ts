@@ -158,11 +158,12 @@ export function useCanvasRenderer(options: Options) {
             if (!visible && overlay.contains(document.activeElement)) {
                 editorRef.current?.focus({ preventScroll: true });
             }
+            const { clientWidth, clientHeight, clientLeft, clientTop } = canvas;
             overlay.style.display = visible ? 'block' : 'none';
-            overlay.style.left = `${(left * canvas.clientWidth) / width + canvas.clientLeft}px`;
-            overlay.style.top = `${(y * canvas.clientHeight) / height + canvas.clientTop}px`;
-            overlay.style.width = `${(Math.max(0, right - left) * canvas.clientWidth) / width}px`;
-            overlay.style.height = `${(view.rowHeight * canvas.clientHeight) / height}px`;
+            overlay.style.left = `${(left * clientWidth) / width + clientLeft}px`;
+            overlay.style.top = `${(y * clientHeight) / height + clientTop}px`;
+            overlay.style.width = `${(Math.max(0, right - left) * clientWidth) / width}px`;
+            overlay.style.height = `${(view.rowHeight * clientHeight) / height}px`;
         };
         drawRef.current = draw;
         draw();
