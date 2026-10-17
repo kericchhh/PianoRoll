@@ -10,7 +10,7 @@ import {
     ROW_HEIGHT,
     VIEWPORT_HEIGHT,
     VIEWPORT_WIDTH,
-} from '@/features/piano-roll/constants';
+} from '@/features/piano-roll/constants/viewport';
 
 export function usePianoRollViewport(endTick: number) {
     const editorRef = useRef<HTMLDivElement>(null);

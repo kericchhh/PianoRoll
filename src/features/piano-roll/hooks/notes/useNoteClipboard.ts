@@ -6,8 +6,14 @@ import {
     type CopiedNote,
 } from '@/features/piano-roll/utils/notes/pasteNoteGroup';
 
+import {
+    DEFAULT_SNAP_TICKS,
+    type SnapTicks,
+} from '@/features/piano-roll/constants/music';
+
 type Options = {
     endTick: number;
+    snapTicks?: SnapTicks;
     announce: (text: string) => void;
     onActivate: (id: string) => void;
     onReveal?: (notes: readonly Note[]) => void;
@@ -15,6 +21,7 @@ type Options = {
 
 export function useNoteClipboard({
     endTick,
+    snapTicks = DEFAULT_SNAP_TICKS,
     announce,
     onActivate,
     onReveal,
@@ -68,6 +75,7 @@ export function useNoteClipboard({
             clipboardRef.current,
             targetTick,
             endTick,
+            snapTicks,
         );
         if (!placed) {
             announce('Cannot paste: copied notes do not fit in the timeline');
@@ -92,7 +100,7 @@ export function useNoteClipboard({
         announce(
             `Pasted ${pasted.length} ${pasted.length === 1 ? 'note' : 'notes'} at tick ${firstTick}`,
         );
-    }, [announce, endTick, onReveal, onActivate]);
+    }, [announce, endTick, onReveal, onActivate, snapTicks]);
 
     return { copyNotes, pasteNotes };
 }

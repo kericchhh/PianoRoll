@@ -12,6 +12,7 @@ import { useNotePointerDown } from '@/features/piano-roll/hooks/notes/useNotePoi
 import { useNoteHistory } from '@/features/piano-roll/hooks/notes/useNoteHistory';
 import { useNoteCursor } from '@/features/piano-roll/hooks/notes/useNoteCursor';
 import { useSelectionEdits } from '@/features/piano-roll/hooks/notes/useSelectionEdits';
+import { DEFAULT_SNAP_TICKS } from '@/features/piano-roll/constants/music';
 
 export function useNoteInteractions(options: NoteInteractionOptions) {
     const {
@@ -20,6 +21,7 @@ export function useNoteInteractions(options: NoteInteractionOptions) {
         height,
         getView,
         endTick,
+        snapTicks = DEFAULT_SNAP_TICKS,
         marqueeRef,
         requestRedraw,
         queryNotes,
@@ -45,7 +47,7 @@ export function useNoteInteractions(options: NoteInteractionOptions) {
         commitMove,
         commitResize,
         announceSelection,
-    } = useNoteActions(endTick, onReveal);
+    } = useNoteActions(endTick, onReveal, snapTicks);
     const history = useNoteHistory({
         gestureModeRef,
         editorRef: options.editorRef,
@@ -61,6 +63,7 @@ export function useNoteInteractions(options: NoteInteractionOptions) {
         commitResize,
     });
     const handleEditorKeyDown = useNoteKeyboard({
+        snapTicks,
         undo: history.undo,
         redo: history.redo,
         ...selectionEdits,
@@ -162,7 +165,7 @@ export function useNoteInteractions(options: NoteInteractionOptions) {
             return;
         }
         if (event.ctrlKey || event.metaKey) return;
-        addNote(point.tick, point.pitch);
+        addNote(Math.floor(point.tick / snapTicks) * snapTicks, point.pitch);
     }
 
     return {

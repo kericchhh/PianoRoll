@@ -6,7 +6,7 @@ import {
     type KeyboardEvent,
     type RefObject,
 } from 'react';
-import { ROW_HEIGHT } from '@/features/piano-roll/constants';
+import { ROW_HEIGHT } from '@/features/piano-roll/constants/viewport';
 import { PianoKey } from '@/features/piano-roll/components/grid/PianoKey';
 import { usePrefersReducedMotion } from '@/shared/hooks/usePrefersReducedMotion';
 import { usePianoKeyScroll } from '@/features/piano-roll/hooks/editor/usePianoKeyScroll';

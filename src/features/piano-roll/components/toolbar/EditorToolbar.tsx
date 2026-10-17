@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
-import { SnapIndicator } from '@/features/piano-roll/components/toolbar/SnapIndicator';
 
 type Props = {
     timeline: ReactNode;
+    snapControl?: ReactNode;
     insertionForm: ReactNode;
     historyControls: ReactNode;
     settingsControls: ReactNode;
@@ -10,6 +10,7 @@ type Props = {
 
 export function EditorToolbar({
     timeline,
+    snapControl,
     insertionForm,
     historyControls,
     settingsControls,
@@ -21,7 +22,7 @@ export function EditorToolbar({
                     Piano roll
                 </h1>
                 {timeline}
-                <SnapIndicator />
+                {snapControl}
                 {historyControls}
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">

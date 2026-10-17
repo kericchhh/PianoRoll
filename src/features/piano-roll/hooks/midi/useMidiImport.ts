@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
-import { BEATS_PER_BAR, PPQ } from '@/features/piano-roll/constants';
+import { BEATS_PER_BAR, PPQ } from '@/features/piano-roll/constants/music';
 import type { Note } from '@/features/piano-roll/types';
 import { MAX_MIDI_BYTES } from '@/features/piano-roll/midi/importLimits';
 

@@ -151,7 +151,8 @@ test('explicit save survives reload and restores exact musical data, timeline, c
     expect(records).toHaveLength(1);
     expect(records[0]).toMatchObject({
         id: 'local',
-        version: 1,
+        version: 2,
+        bpm: 120,
         ppq: 480,
         beatsPerBar: 4,
         barCount: 16,
@@ -408,3 +409,99 @@ for (const savedBars of [4, 32]) {
         ).toBeVisible();
     });
 }
+
+test('loading a version-one project restores default BPM and keeps the current local snap choice', async ({
+    page,
+}) => {
+    await page.goto('/');
+    const bpm = page.getByRole('spinbutton', { name: 'BPM', exact: true });
+    await bpm.fill('177');
+    await bpm.press('Enter');
+    await page.getByRole('combobox', { name: 'Snap', exact: true }).click();
+    await page.getByRole('option', { name: '1/4', exact: true }).click();
+    const saved = {
+        id: 'local',
+        version: 1,
+        ppq: 480,
+        beatsPerBar: 4,
+        barCount: 4,
+        savedAt: 1000,
+        notes: [
+            {
+                id: 'legacy',
+                pitch: 64,
+                startTick: 5,
+                durationTicks: 121,
+                velocity: 0,
+            },
+        ],
+    };
+    await page.evaluate(async (record) => {
+        const path = '/src/features/piano-roll/persistence/projectDatabase.ts';
+        const { projectsTable } = (await import(
+            path
+        )) as typeof import('@/features/piano-roll/persistence/projectDatabase');
+        await projectsTable.put(record as unknown as ProjectRecord);
+    }, saved);
+    const panel = await openProject(page);
+    await panel
+        .getByRole('button', { name: 'Load project', exact: true })
+        .click();
+    await expect(panel.getByRole('status')).toContainText(/loaded/i);
+    await page.keyboard.press('Escape');
+    await expect(bpm).toHaveValue('120');
+    await expect(
+        page.getByRole('combobox', { name: 'Snap', exact: true }),
+    ).toHaveText('1/4');
+    expect((await edits(page)).notes).toEqual({
+        legacy: { ...saved.notes[0], selected: false },
+    });
+    await bpm.focus();
+    await bpm.press('Tab');
+    await expect(bpm).toHaveValue('120');
+});
+
+test('invalid saved BPM cannot stop active playback or replace the current composition', async ({
+    page,
+}) => {
+    await page.goto('/');
+    await seed(page, [
+        { ...source[1], id: 'held', startTick: 0, durationTicks: 50000 },
+    ]);
+    const before = await edits(page);
+    const bpm = page.getByRole('spinbutton', { name: 'BPM', exact: true });
+    await bpm.fill('93');
+    await bpm.press('Enter');
+    await page.evaluate(async () => {
+        const path = '/src/features/piano-roll/persistence/projectDatabase.ts';
+        const { projectsTable } = (await import(
+            path
+        )) as typeof import('@/features/piano-roll/persistence/projectDatabase');
+        await projectsTable.put({
+            id: 'local',
+            version: 2,
+            ppq: 480,
+            beatsPerBar: 4,
+            barCount: 8,
+            savedAt: 1000,
+            bpm: 29,
+            notes: [],
+        });
+    });
+    await expect(page.getByText('Piano ready', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await expect(
+        page.getByRole('button', { name: 'Pause', exact: true }),
+    ).toBeVisible();
+    const panel = await openProject(page);
+    await panel
+        .getByRole('button', { name: 'Load project', exact: true })
+        .click();
+    await expect(panel.getByRole('alert')).toBeVisible();
+    expect(await edits(page)).toEqual(before);
+    await page.keyboard.press('Escape');
+    await expect(bpm).toHaveValue('93');
+    await expect(
+        page.getByRole('button', { name: 'Pause', exact: true }),
+    ).toBeVisible();
+});

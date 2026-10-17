@@ -9,7 +9,11 @@ import { drawPianoRoll } from '@/features/piano-roll/rendering/grid/drawPianoRol
 import { tickToPixel } from '@/features/piano-roll/utils/coordinates/tickToPixel';
 import { pitchToPixel } from '@/features/piano-roll/utils/coordinates/pitchtoPixel';
 import { drawTimeRuler } from '@/features/piano-roll/rendering/grid/drawTimeRuler';
-import { RULER_HEIGHT } from '@/features/piano-roll/constants';
+import { RULER_HEIGHT } from '@/features/piano-roll/constants/viewport';
+import {
+    DEFAULT_SNAP_TICKS,
+    type SnapTicks,
+} from '@/features/piano-roll/constants/music';
 
 type Options = {
     editorRef: RefObject<HTMLDivElement | null>;
@@ -17,6 +21,7 @@ type Options = {
     rulerRef?: RefObject<HTMLCanvasElement | null>;
     overlayRef: RefObject<HTMLDivElement | null>;
     playheadDrawRef?: RefObject<(() => void) | null>;
+    velocityDrawRef?: RefObject<(() => void) | null>;
     activeNoteRef: RefObject<string | null>;
     previewRef: RefObject<Record<string, Note> | null>;
     marqueeRef: RefObject<MarqueeRect | null>;
@@ -25,6 +30,7 @@ type Options = {
     width: number;
     height: number;
     endTick: number;
+    snapTicks?: SnapTicks;
 };
 
 export function useCanvasRenderer(options: Options) {
@@ -39,6 +45,7 @@ export function useCanvasRenderer(options: Options) {
         rulerRef,
         overlayRef,
         playheadDrawRef,
+        velocityDrawRef,
         activeNoteRef,
         previewRef,
         marqueeRef,
@@ -47,6 +54,7 @@ export function useCanvasRenderer(options: Options) {
         width,
         height,
         endTick,
+        snapTicks = DEFAULT_SNAP_TICKS,
     } = options;
     const requestRedraw = useCallback(() => {
         if (frameRef.current !== null) return;
@@ -100,6 +108,7 @@ export function useCanvasRenderer(options: Options) {
     useEffect(() => {
         const draw = () => {
             playheadDrawRef?.current?.();
+            velocityDrawRef?.current?.();
             const view = getView();
             const previews = previewRef.current;
             const rulerView = `${view.pixelsPerTick}:${view.scrollOffsetX}:${width}:${endTick}`;
@@ -120,6 +129,7 @@ export function useCanvasRenderer(options: Options) {
                     width,
                     height,
                     endTick,
+                    snapTicks,
                     previews,
                     marquee: marqueeRef.current,
                 });
@@ -161,12 +171,14 @@ export function useCanvasRenderer(options: Options) {
         canvasRef,
         endTick,
         editorRef,
+        snapTicks,
         getView,
         height,
         index,
         marqueeRef,
         overlayRef,
         playheadDrawRef,
+        velocityDrawRef,
         previewRef,
         width,
     ]);

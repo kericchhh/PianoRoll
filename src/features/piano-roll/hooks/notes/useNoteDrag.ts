@@ -10,7 +10,7 @@ import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 import { snapTick } from '@/features/piano-roll/utils/time/snapTick';
 import { moveNoteGroup } from '@/features/piano-roll/utils/notes/moveNoteGroup';
 import { resizeNoteGroup } from '@/features/piano-roll/utils/notes/resizeNoteGroup';
-import { SNAP_TICKS } from '@/features/piano-roll/constants';
+import { DEFAULT_SNAP_TICKS } from '@/features/piano-roll/constants/music';
 
 type Options = Pick<
     NoteInteractionOptions,
@@ -18,6 +18,7 @@ type Options = Pick<
     | 'surfaceRef'
     | 'getView'
     | 'endTick'
+    | 'snapTicks'
     | 'dragCandidateRef'
     | 'previewRef'
     | 'requestRedraw'
@@ -36,6 +37,7 @@ export function useNoteDrag({
     surfaceRef,
     getView,
     endTick,
+    snapTicks = DEFAULT_SNAP_TICKS,
     dragCandidateRef,
     previewRef,
     requestRedraw,
@@ -57,12 +59,12 @@ export function useNoteDrag({
             const interrupted = canceled || event?.type === 'pointercancel';
             if (updateMarquee({ dx, dy, last, tap, canceled: interrupted })) {
                 if (!tap) suppressClickRef.current = true;
-                if (last || interrupted) gestureModeRef.current = 'idle';
+                if (tap || last || interrupted) gestureModeRef.current = 'idle';
                 return;
             }
             const original = dragCandidateRef.current;
             if (!original) {
-                if (last || interrupted) gestureModeRef.current = 'idle';
+                if (tap || last || interrupted) gestureModeRef.current = 'idle';
                 return;
             }
 
@@ -103,7 +105,7 @@ export function useNoteDrag({
                           anchorTick +
                               (dx * dragScaleRef.current.x) /
                                   view.pixelsPerTick,
-                          SNAP_TICKS,
+                          snapTicks,
                       ) - anchorTick;
             const pitchDelta = -Math.round(
                 (dy * dragScaleRef.current.y) / view.rowHeight,

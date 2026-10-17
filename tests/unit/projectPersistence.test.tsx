@@ -24,7 +24,8 @@ const before: Note = {
 };
 const saved: ProjectRecord = {
     id: 'local',
-    version: 1,
+    version: 2,
+    bpm: 120,
     ppq: 480,
     beatsPerBar: 4,
     barCount: 16,
@@ -61,7 +62,7 @@ test('saving snapshots the composition without selection and leaves edit history
     const original = useNoteStore.getState();
     const announce = vi.fn();
     const { result } = renderHook(() =>
-        useProjectPersistence({ barCount: 8, announce }),
+        useProjectPersistence({ bpm: 120, barCount: 8, announce }),
     );
     await act(() => result.current.save());
     expect(saveProject).toHaveBeenCalledOnce();
@@ -94,6 +95,7 @@ test('loading validates before stopping playback and restores exact IDs/data wit
     const announce = vi.fn();
     const { result } = renderHook(() =>
         useProjectPersistence({
+            bpm: 120,
             barCount: 4,
             onBeforeLoad,
             onLoaded,
@@ -101,7 +103,7 @@ test('loading validates before stopping playback and restores exact IDs/data wit
         }),
     );
     await act(() => result.current.load());
-    expect(onBeforeLoad).toHaveBeenCalledOnce();
+    expect(onBeforeLoad).toHaveBeenCalledExactlyOnceWith(saved);
     expect(onLoaded).toHaveBeenCalledWith(saved);
     expect(useNoteStore.getState().notes).toEqual({
         'saved-id': { ...saved.notes[0], selected: false },
@@ -120,7 +122,7 @@ test.each(['missing', 'invalid', 'sparse', 'read-error'])(
         if (failure === 'invalid') {
             vi.mocked(loadProject).mockResolvedValue({
                 ...saved,
-                version: 2,
+                version: 3,
             } as unknown as ProjectRecord);
         }
         if (failure === 'sparse') {
@@ -138,7 +140,12 @@ test.each(['missing', 'invalid', 'sparse', 'read-error'])(
         const onBeforeLoad = vi.fn();
         const onLoaded = vi.fn();
         const { result } = renderHook(() =>
-            useProjectPersistence({ barCount: 4, onBeforeLoad, onLoaded }),
+            useProjectPersistence({
+                bpm: 120,
+                barCount: 4,
+                onBeforeLoad,
+                onLoaded,
+            }),
         );
         await act(() => result.current.load());
         expect(useNoteStore.getState()).toBe(original);
@@ -153,7 +160,9 @@ test.each(['missing', 'invalid', 'sparse', 'read-error'])(
 test('a failed save reports the error and releases the lock for retry', async () => {
     const original = useNoteStore.getState();
     vi.mocked(saveProject).mockRejectedValueOnce(new Error('Quota exceeded'));
-    const { result } = renderHook(() => useProjectPersistence({ barCount: 4 }));
+    const { result } = renderHook(() =>
+        useProjectPersistence({ bpm: 120, barCount: 4 }),
+    );
     await act(() => result.current.save());
     expect(result.current.error).toEqual(expect.any(String));
     expect(result.current.isBusy).toBe(false);
@@ -166,7 +175,9 @@ test('a failed save reports the error and releases the lock for retry', async ()
 test('duplicate load and save actions share an immediate lock', async () => {
     const pending = deferred<ProjectRecord>();
     vi.mocked(loadProject).mockReturnValue(pending.promise);
-    const { result } = renderHook(() => useProjectPersistence({ barCount: 4 }));
+    const { result } = renderHook(() =>
+        useProjectPersistence({ bpm: 120, barCount: 4 }),
+    );
     let action!: Promise<void>;
     await act(async () => {
         action = result.current.load();
@@ -192,7 +203,12 @@ test('late reads after unmount cannot stop playback or replace notes', async () 
     const onBeforeLoad = vi.fn();
     const onLoaded = vi.fn();
     const { result, unmount } = renderHook(() =>
-        useProjectPersistence({ barCount: 4, onBeforeLoad, onLoaded }),
+        useProjectPersistence({
+            bpm: 120,
+            barCount: 4,
+            onBeforeLoad,
+            onLoaded,
+        }),
     );
     let action!: Promise<void>;
     await act(async () => {
@@ -213,7 +229,7 @@ test('notes edited while a load is reading are not overwritten', async () => {
     vi.mocked(loadProject).mockReturnValue(pending.promise);
     const onBeforeLoad = vi.fn();
     const { result } = renderHook(() =>
-        useProjectPersistence({ barCount: 4, onBeforeLoad }),
+        useProjectPersistence({ bpm: 120, barCount: 4, onBeforeLoad }),
     );
     let action!: Promise<void>;
     await act(async () => {
@@ -236,7 +252,7 @@ test('load rechecks active gesture ownership after its asynchronous read', async
     const onBeforeLoad = vi.fn();
     const original = useNoteStore.getState();
     const { result } = renderHook(() =>
-        useProjectPersistence({ barCount: 4, canLoad, onBeforeLoad }),
+        useProjectPersistence({ bpm: 120, barCount: 4, canLoad, onBeforeLoad }),
     );
     let action!: Promise<void>;
     await act(async () => {
@@ -253,7 +269,9 @@ test('load rechecks active gesture ownership after its asynchronous read', async
 
 test('an empty saved project is loadable and clears the previous composition', async () => {
     vi.mocked(loadProject).mockResolvedValue({ ...saved, notes: [] });
-    const { result } = renderHook(() => useProjectPersistence({ barCount: 4 }));
+    const { result } = renderHook(() =>
+        useProjectPersistence({ bpm: 120, barCount: 4 }),
+    );
     await act(() => result.current.load());
     expect(useNoteStore.getState().notes).toEqual({});
     expect(useNoteStore.getState().undoStack).toEqual([]);
@@ -268,7 +286,12 @@ test('a timeline length changed during a pending read cannot be overwritten', as
     const original = useNoteStore.getState();
     const { result, rerender } = renderHook(
         ({ barCount }) =>
-            useProjectPersistence({ barCount, onBeforeLoad, onLoaded }),
+            useProjectPersistence({
+                bpm: 120,
+                barCount,
+                onBeforeLoad,
+                onLoaded,
+            }),
         { initialProps: { barCount: 4 } },
     );
     let action!: Promise<void>;
@@ -291,7 +314,7 @@ test('save captures the invocation data while later edits remain in the editor',
     vi.mocked(saveProject).mockReturnValue(pending.promise);
     const onBeforeLoad = vi.fn();
     const { result } = renderHook(() =>
-        useProjectPersistence({ barCount: 8, onBeforeLoad }),
+        useProjectPersistence({ bpm: 120, barCount: 8, onBeforeLoad }),
     );
     let action!: Promise<void>;
     await act(async () => {
@@ -322,11 +345,85 @@ test('an active gesture rejects loading before any database read', async () => {
     const onBeforeLoad = vi.fn();
     const original = useNoteStore.getState();
     const { result } = renderHook(() =>
-        useProjectPersistence({ barCount: 4, canLoad, onBeforeLoad }),
+        useProjectPersistence({ bpm: 120, barCount: 4, canLoad, onBeforeLoad }),
     );
     await act(() => result.current.load());
     expect(loadProject).not.toHaveBeenCalled();
     expect(onBeforeLoad).not.toHaveBeenCalled();
     expect(useNoteStore.getState()).toBe(original);
     expect(result.current.error).toEqual(expect.any(String));
+});
+
+test('a BPM change during a pending load leaves the current composition and playback untouched', async () => {
+    const pending = deferred<ProjectRecord>();
+    vi.mocked(loadProject).mockReturnValue(pending.promise);
+    const onBeforeLoad = vi.fn();
+    const onLoaded = vi.fn();
+    const original = useNoteStore.getState();
+    const { result, rerender } = renderHook(
+        ({ bpm }) =>
+            useProjectPersistence({ barCount: 8, bpm, onBeforeLoad, onLoaded }),
+        { initialProps: { bpm: 120 } },
+    );
+    let action!: Promise<void>;
+    await act(async () => {
+        action = result.current.load();
+    });
+    rerender({ bpm: 177 });
+    await act(async () => {
+        pending.resolve(saved);
+        await action;
+    });
+    expect(useNoteStore.getState()).toBe(original);
+    expect(onBeforeLoad).not.toHaveBeenCalled();
+    expect(onLoaded).not.toHaveBeenCalled();
+    expect(result.current.error).toEqual(expect.any(String));
+});
+
+test.each([undefined, '120', 29, 301, 120.5, NaN])(
+    'invalid persisted BPM %j cannot stop playback or replace the composition',
+    async (bpm) => {
+        vi.mocked(loadProject).mockResolvedValue({
+            ...saved,
+            bpm,
+        } as unknown as ProjectRecord);
+        const original = useNoteStore.getState();
+        const onBeforeLoad = vi.fn();
+        const onLoaded = vi.fn();
+        const { result } = renderHook(() =>
+            useProjectPersistence({
+                barCount: 8,
+                bpm: 177,
+                onBeforeLoad,
+                onLoaded,
+            }),
+        );
+        await act(() => result.current.load());
+        expect(useNoteStore.getState()).toBe(original);
+        expect(onBeforeLoad).not.toHaveBeenCalled();
+        expect(onLoaded).not.toHaveBeenCalled();
+        expect(result.current.error).toEqual(expect.any(String));
+    },
+);
+
+test('save captures BPM at invocation while later tempo edits remain local', async () => {
+    const pending = deferred<void>();
+    vi.mocked(saveProject).mockReturnValue(pending.promise);
+    const { result, rerender } = renderHook(
+        ({ bpm }) => useProjectPersistence({ barCount: 8, bpm }),
+        { initialProps: { bpm: 93 } },
+    );
+    let action!: Promise<void>;
+    await act(async () => {
+        action = result.current.save();
+    });
+    rerender({ bpm: 177 });
+    expect(saveProject).toHaveBeenCalledWith(
+        expect.objectContaining({ version: 2, bpm: 93 }),
+    );
+    await act(async () => {
+        pending.resolve(undefined);
+        await action;
+    });
+    expect(result.current.error).toBeNull();
 });

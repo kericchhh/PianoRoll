@@ -50,6 +50,7 @@ export function applyNoteCommand(
             break;
         case 'MOVE_NOTES':
         case 'RESIZE_NOTES':
+        case 'SET_VELOCITY':
             for (const change of command.changes) {
                 if (!notes[change.id]) continue;
                 notes[change.id] = {

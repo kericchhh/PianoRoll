@@ -8,10 +8,11 @@ import {
 import * as Tone from 'tone';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 import { tickToSeconds } from '@/features/piano-roll/utils/time/tickToSeconds';
-import { PPQ } from '@/features/piano-roll/constants';
+import { PPQ } from '@/features/piano-roll/constants/music';
 import type { Note } from '@/features/piano-roll/types';
 import type { PlaybackState } from '@/features/piano-roll/audio/playbackTypes';
 import { schedulePianoNotes } from '@/features/piano-roll/audio/schedulePianoNotes';
+import { isValidBpm } from '@/features/piano-roll/utils/time/isValidBpm';
 import {
     clearPlaybackEvents,
     invalidatePlaybackCompletion,
@@ -23,6 +24,9 @@ import {
 } from '@/features/piano-roll/utils/notes/playbackNotes';
 
 export function usePlayback(samplerRef: RefObject<Tone.Sampler | null>) {
+    const [bpm, setBpm] = useState(() =>
+        Math.round(Tone.getTransport().bpm.value),
+    );
     const [playbackState, setPlaybackState] =
         useState<PlaybackState>('stopped');
     const scheduledIdRef = useRef<number[]>([]);
@@ -53,6 +57,20 @@ export function usePlayback(samplerRef: RefObject<Tone.Sampler | null>) {
         samplerRef.current?.releaseAll(Tone.now());
         setPlaybackState('stopped');
     }, [samplerRef]);
+
+    const changeBpm = useCallback(
+        (next: number): boolean => {
+            if (!isValidBpm(next)) return false;
+            const transport = Tone.getTransport();
+            if (Math.round(transport.bpm.value) !== next) {
+                stopPlayback();
+                transport.bpm.value = next;
+            }
+            setBpm(next);
+            return true;
+        },
+        [stopPlayback],
+    );
 
     useEffect(() => {
         const transport = Tone.getTransport();
@@ -167,6 +185,8 @@ export function usePlayback(samplerRef: RefObject<Tone.Sampler | null>) {
     }
 
     return {
+        bpm,
+        changeBpm,
         isPlaying: playbackState === 'playing',
         playbackState,
         togglePlayback,

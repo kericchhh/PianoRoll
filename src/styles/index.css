@@ -79,14 +79,15 @@
 }
 
 .workspace-grid {
+    --pitch-key-width: 72px;
     display: grid;
-    grid-template-columns: 72px minmax(0, 1fr) 224px;
-    grid-template-rows: 32px minmax(0, 1fr);
+    grid-template-columns: var(--pitch-key-width) minmax(0, 1fr) 224px;
+    grid-template-rows: 32px minmax(0, 1fr) auto;
 }
 
 .studio-sidebar {
     grid-column: 3;
-    grid-row: 1 / 3;
+    grid-row: 1 / -1;
 }
 
 .piano-key {
@@ -151,7 +152,8 @@
         border-top: 1px solid var(--border);
     }
     .workspace-grid {
-        grid-template-columns: 64px minmax(0, 1fr);
+        --pitch-key-width: 64px;
+        grid-template-columns: var(--pitch-key-width) minmax(0, 1fr);
     }
     .studio-sidebar {
         display: none;

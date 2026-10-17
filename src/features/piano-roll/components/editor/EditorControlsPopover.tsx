@@ -54,6 +54,7 @@ export function EditorControlsPopover({
                             <ViewportControls {...editor.viewportActions} />
                         </div>
                         <SelectionEditControls
+                            snapTicks={editor.snapTicks}
                             hasSelection={!!editor.selectedNote}
                             moveSelection={editor.interactions.moveSelection}
                             resizeSelection={

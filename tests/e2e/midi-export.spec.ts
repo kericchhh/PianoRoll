@@ -74,6 +74,9 @@ test('keyboard export downloads real MIDI with faithful notes and leaves selecti
             return { notes, undoStack, redoStack };
         });
     const before = await snapshot();
+    const bpm = page.getByRole('spinbutton', { name: 'BPM', exact: true });
+    await bpm.fill('93');
+    await bpm.press('Enter');
     expect(serializerRequests).toHaveLength(0);
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
@@ -92,7 +95,7 @@ test('keyboard export downloads real MIDI with faithful notes and leaves selecti
     const parsed = new Midi(await readFile(path));
     expect(parsed.header.ppq).toBe(480);
     expect(parsed.header.timeSignatures[0].timeSignature).toEqual([4, 4]);
-    expect(parsed.header.tempos[0].bpm).toBe(120);
+    expect(parsed.header.tempos[0].bpm).toBeCloseTo(93, 3);
     expect(parsed.tracks).toHaveLength(2);
     const decoded = parsed.tracks
         .flatMap((track) =>

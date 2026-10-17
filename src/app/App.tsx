@@ -29,6 +29,8 @@ export function App() {
     });
     const {
         isPlaying,
+        bpm,
+        changeBpm,
         playbackState,
         togglePlayback,
         stopPlayback,
@@ -53,6 +55,8 @@ export function App() {
     return (
         <main className="flex h-dvh min-h-0 flex-col p-2">
             <PianoRollEditor
+                bpm={bpm}
+                onBpmChange={changeBpm}
                 onTogglePlayback={handlePlay}
                 onStopPlayback={stopPlayback}
                 sampleControls={<CustomInstrumentPanel {...sampleControls} />}

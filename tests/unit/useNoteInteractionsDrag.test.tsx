@@ -14,6 +14,7 @@ import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 import { PianoRollEditor } from '@/features/piano-roll/components/editor/PianoRollEditor';
 import { PIANO_ROLL_COLORS } from '@/features/piano-roll/rendering/colors';
 import type { Note } from '@/features/piano-roll/types';
+import type { MouseEvent } from 'react';
 
 vi.mock('@use-gesture/react', () => ({ useDrag: vi.fn(), useWheel: vi.fn() }));
 
@@ -251,3 +252,74 @@ test('all origin ghosts are drawn beneath the moving notes when their positions 
         ['#ffb18a', 180, 40],
     ]);
 });
+
+for (const selected of [true, false]) {
+    test.each([
+        { pixelsPerTick: 0.5, scrollOffsetX: 0, scale: 1 },
+        { pixelsPerTick: 1.25, scrollOffsetX: 90, scale: 2 },
+    ])(
+        'empty-grid clicks insert into the containing cell with selected=' +
+            selected +
+            ' and view %j',
+        ({ pixelsPerTick, scrollOffsetX, scale }) => {
+            const existing = { ...original, selected };
+            useNoteStore.setState({
+                notes: { note: existing },
+                undoStack: [],
+                redoStack: [],
+            });
+            const canvas = document.createElement('canvas');
+            Object.defineProperties(canvas, {
+                clientWidth: { value: 600 / scale },
+                clientHeight: { value: 240 / scale },
+            });
+            canvas.getBoundingClientRect = () =>
+                ({ left: 40, top: 20 }) as DOMRect;
+            const { result } = renderHook(() =>
+                useNoteInteractions({
+                    canvasRef: { current: canvas },
+                    width: 600,
+                    height: 240,
+                    getView: () => ({
+                        pixelsPerTick,
+                        scrollOffsetX,
+                        highestVisiblePitch: 72,
+                        rowHeight: 20,
+                    }),
+                    endTick: 1920,
+                    dragCandidateRef: { current: null },
+                    previewRef: { current: null },
+                    marqueeRef: { current: null },
+                    requestRedraw: vi.fn(),
+                }),
+            );
+            // Tick 330 lies in the right half of the [240, 360) snap cell.
+            act(() =>
+                result.current.handleCanvasClick({
+                    currentTarget: canvas,
+                    clientX: 40 + (330 * pixelsPerTick - scrollOffsetX) / scale,
+                    clientY: 20 + 50 / scale,
+                    shiftKey: false,
+                    ctrlKey: false,
+                    metaKey: false,
+                } as unknown as MouseEvent<HTMLElement>),
+            );
+            const state = useNoteStore.getState();
+            expect(state.notes.note).toEqual(existing);
+            const added = Object.values(state.notes).filter(
+                (note) => note.id !== 'note',
+            );
+            expect(added).toHaveLength(1);
+            expect(added[0]).toMatchObject({ startTick: 240, pitch: 70 });
+            expect(state.undoStack).toHaveLength(1);
+            expect(result.current.alert).toBe('Added pitch 70 at tick 240');
+            // The explicit toolbar action retains nearest-grid snapping.
+            act(() => result.current.addNote(330, 69));
+            expect(
+                Object.values(useNoteStore.getState().notes).find(
+                    (note) => note.pitch === 69,
+                )?.startTick,
+            ).toBe(360);
+        },
+    );
+}

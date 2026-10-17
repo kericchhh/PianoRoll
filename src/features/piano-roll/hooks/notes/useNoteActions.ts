@@ -4,14 +4,15 @@ import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 import { snapTick } from '@/features/piano-roll/utils/time/snapTick';
 import { useNoteClipboard } from '@/features/piano-roll/hooks/notes/useNoteClipboard';
 import {
-    DEFAULT_NOTE_DURATION_TICKS,
     DEFAULT_NOTE_VELOCITY,
-    SNAP_TICKS,
-} from '@/features/piano-roll/constants';
+    DEFAULT_SNAP_TICKS,
+    type SnapTicks,
+} from '@/features/piano-roll/constants/music';
 
 export function useNoteActions(
     endTick: number,
     onReveal?: (notes: readonly Note[]) => void,
+    snapTicks: SnapTicks = DEFAULT_SNAP_TICKS,
 ) {
     const [announcement, setAnnouncement] = useState({ text: '', sequence: 0 });
     const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
@@ -54,21 +55,21 @@ export function useNoteActions(
 
     const addNote = useCallback(
         (tick: number, pitch: number, selected = false) => {
-            const startTick = snapTick(tick, SNAP_TICKS);
+            const startTick = snapTick(tick, snapTicks);
             if (
                 !Number.isFinite(startTick) ||
                 !Number.isInteger(pitch) ||
                 pitch < 0 ||
                 pitch > 127 ||
                 startTick < 0 ||
-                startTick + DEFAULT_NOTE_DURATION_TICKS > endTick
+                startTick + snapTicks > endTick
             )
                 return false;
             const note: Note = {
                 id: crypto.randomUUID(),
                 pitch,
                 startTick,
-                durationTicks: DEFAULT_NOTE_DURATION_TICKS,
+                durationTicks: snapTicks,
                 velocity: DEFAULT_NOTE_VELOCITY,
                 selected,
             };
@@ -81,7 +82,7 @@ export function useNoteActions(
             announce(`Added pitch ${pitch} at tick ${startTick}`);
             return true;
         },
-        [announce, endTick, onReveal],
+        [announce, endTick, onReveal, snapTicks],
     );
 
     const deleteNotes = useCallback(
@@ -111,6 +112,7 @@ export function useNoteActions(
 
     const { copyNotes, pasteNotes } = useNoteClipboard({
         endTick,
+        snapTicks,
         announce,
         onActivate: setActiveNoteId,
         onReveal,

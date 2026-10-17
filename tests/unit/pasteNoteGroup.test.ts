@@ -63,3 +63,18 @@ test.each([
 test('an empty clipboard produces no notes', () => {
     expect(pasteNoteGroup([], 0, 1920)).toEqual([]);
 });
+
+test.each([
+    [120, 720],
+    [240, 720],
+    [480, 960],
+] as const)(
+    'paste origin aligns forward to the %i-tick grid without changing internal timing',
+    (snapTicks, origin) => {
+        const pasted = pasteNoteGroup(copied, 631, 3000, snapTicks);
+        expect(pasted).toEqual([
+            { ...copied[0], startTick: origin + 270 },
+            { ...copied[1], startTick: origin },
+        ]);
+    },
+);

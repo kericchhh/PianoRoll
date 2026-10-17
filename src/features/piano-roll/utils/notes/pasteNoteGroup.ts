@@ -1,5 +1,8 @@
 import type { Note } from '@/features/piano-roll/types';
-import { SNAP_TICKS } from '@/features/piano-roll/constants';
+import {
+    DEFAULT_SNAP_TICKS,
+    type SnapTicks,
+} from '@/features/piano-roll/constants/music';
 
 export type CopiedNote = Pick<
     Note,
@@ -10,6 +13,7 @@ export function pasteNoteGroup(
     copied: readonly CopiedNote[],
     targetTick: number,
     endTick: number,
+    snapTicks: SnapTicks = DEFAULT_SNAP_TICKS,
 ): CopiedNote[] | null {
     if (!Number.isFinite(targetTick) || !Number.isFinite(endTick)) return null;
     if (copied.length === 0) return [];
@@ -33,7 +37,7 @@ export function pasteNoteGroup(
         lastTick = Math.max(lastTick, note.startTick + note.durationTicks);
     }
     const startTick =
-        Math.ceil(Math.max(0, targetTick) / SNAP_TICKS) * SNAP_TICKS;
+        Math.ceil(Math.max(0, targetTick) / snapTicks) * snapTicks;
     if (startTick + lastTick - firstTick > endTick) return null;
     return copied.map((note) => ({
         pitch: note.pitch,

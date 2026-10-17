@@ -21,7 +21,7 @@ export const NoteListItem = memo(function NoteListItem({
             >
                 {note.selected ? 'Selected: ' : ''}
                 Pitch {note.pitch}, tick {note.startTick}, duration{' '}
-                {note.durationTicks} ticks
+                {note.durationTicks} ticks, velocity {note.velocity}
             </Button>
         </li>
     );

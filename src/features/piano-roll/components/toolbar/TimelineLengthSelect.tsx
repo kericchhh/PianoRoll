@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { BAR_COUNTS } from '@/features/piano-roll/constants';
+import { BAR_COUNTS } from '@/features/piano-roll/constants/music';
 import { Label } from '@/shared/components/ui/label';
 import {
     Select,

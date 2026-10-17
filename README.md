@@ -32,13 +32,14 @@ npm run dev
 ```
 
 Keyboard users can create a note with the New note pitch / Start tick form.
-Click a note to select it; Ctrl/Cmd-click toggles selection, and Ctrl/Cmd-drag
+Click empty grid to add a note at the start of the clicked snap cell, including
+when another note is selected. Click a note to select it; Ctrl/Cmd-click toggles selection, and Ctrl/Cmd-drag
 empty grid replaces selection with overlapping notes. Shift-drag pans;
 Ctrl-wheel zooms. Arrow keys move the selection and Delete removes it.
 Timeline view buttons provide keyboard and click alternatives: zoom changes by
 a factor of 1.25 around the viewport center; pan moves half the visible width.
-Selected notes buttons move the whole selection by one semitone or 120 ticks,
-or change its duration by 120 ticks. These use the same bounds, history, and
+Selected notes buttons move the whole selection by one semitone or one snap interval,
+or change its duration by one snap interval. These use the same bounds, history, and
 announcements as keyboard editing, and keep focus on the activated button.
 Both groups live in a compact popover opened by the circular Editor controls
 button at the grid's bottom-left. The panel background is transparent; icon
@@ -51,7 +52,7 @@ Space plays or pauses from the grid, selected-note overlay, or note list.
 Enter toggles a focused note-list button's selection.
 Ctrl/Cmd+C copies the selected notes within this tab. Ctrl/Cmd+V pastes
 after the current selection, or after the last paste when nothing is selected.
-The group starts at the next 120-tick grid boundary and keeps its internal
+The group starts at the next selected snap boundary and keeps its internal
 spacing, pitches, durations, and velocities. New notes become the selection;
 if the whole group will not fit, the paste is rejected and announced.
 Drag a note's visible right edge, or use Shift+Left/Right, to resize the
@@ -63,6 +64,37 @@ Movement reveals the selection without changing the stored MIDI coordinates.
 When playback or viewport navigation hides a focused selected-note overlay,
 focus moves to the editor so keyboard editing and playback remain available.
 Piano keys use a black-and-white inset focus indicator visible on either key face.
+
+Snap offers 1/4, 1/8, and 1/16, initially 1/16. It controls new-note length,
+insertion, dragging, resizing, keyboard/button steps, paste alignment, and grid
+subdivisions. The independent minimum note duration stays 120 ticks. Changing snap
+leaves existing notes untouched and stays local to this tab. The grid still
+coarsens subdivisions at distant zoom levels to keep lines readable.
+
+BPM accepts whole numbers from 30 to 300, initially 120. Enter or leaving the field
+commits a valid value; invalid input has an inline error and leaves playback alone.
+A changed BPM stops and resets playback before applying the new tempo; submitting
+the current value leaves playback running. Snap and BPM changes stay outside note
+history, preserve selection, and are blocked during active gestures.
+
+The Velocity handle below the grid opens a bottom lane, initially collapsed.
+Drag it to open or resize; click it or its chevron to toggle. The focused handle
+also supports Enter/Space, Up/Down, and Home/End. Opening and closing ease smoothly;
+direct resizing follows the pointer and reduced motion skips the transition.
+The default height is 160 pixels, bounded by 80–320 pixels and available workspace.
+Smaller viewports reduce these bounds to preserve room for the grid.
+
+Each visible note has its own vertical velocity slider, aligned with the grid's
+horizontal zoom and pan. Notes at the same tick appear side by side. Drag or click
+a slider to edit just that note from 0–127, preserving note selection and creating
+one undo entry on release. Cancellation or window blur discards the preview.
+Left/Right navigates sliders, revealing offscreen notes; Up/Down changes velocity
+by one and Home/End sets 0/127. Labels and announcements identify each note, and
+the accessible note list includes velocity. Slider previews update only that
+control; windowed DOM positions follow the existing canvas redraw path. Lane
+height stays local to this tab. Save/load and MIDI export already retain velocity.
+Bars meet the lane's bottom edge. The graphite lane has labelled 0, 32, 64, 96,
+and 127 guides; hovering or focusing a slider shows its exact current value.
 
 The grid cursor follows the action: crosshair for drawing or marquee selection,
 move over note bodies, and horizontal resize at an eligible note's right edge.
@@ -207,17 +239,18 @@ this browser and origin. Reloading starts an empty editor until Load project is
 pressed. Saving an empty composition is supported.
 
 The versioned record contains note IDs, pitches, tick positions, durations,
-velocities, and timeline length, plus the fixed 480 PPQ and 4/4 timing metadata.
+velocities, timeline length, and BPM, plus the fixed 480 PPQ and 4/4 timing metadata.
+Version 2 saves include BPM; version 1 saves remain readable and load at 120 BPM.
 Short imported notes, silent notes, and notes beyond the timeline are retained
 exactly. Selection, undo/redo stacks, viewport, and audio buffers are not saved.
 Loading validates the record before stopping playback, replaces notes and
-timeline, and clears selection and history. The current instrument stays active;
+timeline and BPM, and clears selection and history. The current instrument stays active;
 zoom/pan stay in place and clamp to the restored timeline. After a page reload,
 custom instruments must be imported again.
 
 Failed saves preserve the previous database record. Missing, invalid, or
 unreadable saves leave the editor and playback untouched. Loading rejects an
-active gesture or changes to notes/timeline during its asynchronous read.
+active gesture or changes to notes, timeline, or BPM during its asynchronous read.
 Duplicate actions are blocked while busy; completions after editor unmount
 cannot replace notes. Accessible status/error messages and toasts report results.
 Persistence runs only on explicit actions, never on drag previews or audio frames.
@@ -236,7 +269,9 @@ npm run test:e2e
 Unit tests cover pure math, store actions, rendering contracts, and accessibility
 handlers. Browser tests use real pointer capture, generated clicks, wheel events,
 Radix menus, and keyboard focus. A 1000-note Canvas timing case records diagnostic
-mean/p95 times in test artifacts; it is not a claim of 60fps on every machine.
+mean/p95 times in test artifacts. A separate 1,000-visible-slider velocity probe
+records mount duration, frame intervals, and which sliders change during a drag.
+These diagnostics are not a claim of 60fps on every machine.
 
 Husky runs lint-staged lint/format checks and a project-wide TypeScript check on
 commit. `npm ci` activates hooks through `prepare`; when scripts are deliberately
@@ -245,7 +280,7 @@ disabled, run `npm run prepare` separately. Hooks never stage the entire reposit
 ## Ownership
 
 - `components/`: grouped into `editor/`, `toolbar/`, `grid/`, `notes/`,
-  `playback/`, `midi/`, and `projects/`. `PianoRollEditor` composes the header, main workspace, and footer.
+  `playback/`, `midi/`, `projects/`, and `velocity/`. `PianoRollEditor` composes the header, main workspace, and footer.
   The header separates tools from playback; the main workspace contains keys,
   ruler, the editing surface, and the reserved sidebar. The surface composes the
   grid and playhead canvases, selected-note overlay, context menu, accessible list,
@@ -254,7 +289,8 @@ disabled, run `npm run prepare` separately. Hooks never stage the entire reposit
   `notes/` owns actions, announcements, gestures, clipboard, and keyboard commands;
   `playback/` owns the sampler, controls, scheduling, completion, and visual loops;
   `midi/` owns import/export orchestration and notifications;
-  `projects/` owns explicit save/load orchestration and async guards.
+  `projects/` owns explicit save/load orchestration and async guards;
+  `velocity/` owns lane sizing, windowing, focus, and per-note edit transactions.
 - `persistence/`: versioned project validation, the local Dexie database, and
   repository reads/writes; components do not access IndexedDB directly.
 - `midi/`: bounded file/event validation, PPQ conversion, shared note validation,
@@ -264,7 +300,8 @@ disabled, run `npm run prepare` separately. Hooks never stage the entire reposit
   `public/audio/piano/`.
 - `rendering/`: drawing passes grouped into `grid/`, `notes/`, and `playback/`,
   with shared colors at the root.
-- `utils/`: grouped into `coordinates/`, `notes/`, `time/`, and `viewport/`.
+- `utils/`: grouped into `coordinates/`, `notes/`, `time/`, `viewport/`, and
+  `velocity/` for lane bounds and onset layout.
 - `store/`: normalized note data, selection, and undo/redo stacks; `commands/`
   owns typed command payloads, creation, and pure forward/reverse application.
 

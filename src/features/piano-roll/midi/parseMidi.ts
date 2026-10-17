@@ -1,5 +1,5 @@
 import { Midi } from '@tonejs/midi';
-import { PPQ } from '@/features/piano-roll/constants';
+import { PPQ } from '@/features/piano-roll/constants/music';
 import type { Note } from '@/features/piano-roll/types';
 import { validateMidi } from './validateMidi';
 import { isValidMidiNote } from './isValidMidiNote';

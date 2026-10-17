@@ -1,9 +1,13 @@
 import type { KeyboardEvent, RefObject } from 'react';
 import type { GestureMode } from '@/features/piano-roll/types';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
-import { SNAP_TICKS } from '@/features/piano-roll/constants';
+import {
+    DEFAULT_SNAP_TICKS,
+    type SnapTicks,
+} from '@/features/piano-roll/constants/music';
 
 type Options = {
+    snapTicks?: SnapTicks;
     gestureModeRef: RefObject<GestureMode>;
     moveSelection: (tickDelta: number, pitchDelta: number) => void;
     resizeSelection: (tickDelta: number) => void;
@@ -16,6 +20,7 @@ type Options = {
 };
 
 export function useNoteKeyboard({
+    snapTicks = DEFAULT_SNAP_TICKS,
     gestureModeRef,
     moveSelection,
     resizeSelection,
@@ -89,19 +94,17 @@ export function useNoteKeyboard({
         if (event.shiftKey) {
             if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
             event.preventDefault();
-            resizeSelection(
-                event.key === 'ArrowLeft' ? -SNAP_TICKS : SNAP_TICKS,
-            );
+            resizeSelection(event.key === 'ArrowLeft' ? -snapTicks : snapTicks);
             return;
         }
         let tickDelta = 0,
             pitchDelta = 0;
         switch (event.key) {
             case 'ArrowLeft':
-                tickDelta = -SNAP_TICKS;
+                tickDelta = -snapTicks;
                 break;
             case 'ArrowRight':
-                tickDelta = SNAP_TICKS;
+                tickDelta = snapTicks;
                 break;
             case 'ArrowUp':
                 pitchDelta = 1;

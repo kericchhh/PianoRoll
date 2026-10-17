@@ -2,7 +2,7 @@ import { expect, test, vi } from 'vitest';
 import { drawPlayhead } from '@/features/piano-roll/rendering/playback/drawPlayhead';
 import { drawWaveform } from '@/features/piano-roll/rendering/playback/drawWaveform';
 import { scrollForPlayhead } from '@/features/piano-roll/utils/viewport/scrollForPlayhead';
-import { RULER_HEIGHT } from '@/features/piano-roll/constants';
+import { RULER_HEIGHT } from '@/features/piano-roll/constants/viewport';
 
 function createContext() {
     return {

@@ -3,7 +3,7 @@ import { Midi } from '@tonejs/midi';
 import type { Note } from '@/features/piano-roll/types';
 import { serializeMidi } from '@/features/piano-roll/midi/serializeMidi';
 import { groupMidiNotes } from '@/features/piano-roll/midi/groupMidiNotes';
-import { PPQ } from '@/features/piano-roll/constants';
+import { PPQ } from '@/features/piano-roll/constants/music';
 
 function note(id: string, fields: Partial<Note> = {}): Note {
     return {

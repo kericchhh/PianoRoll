@@ -33,7 +33,11 @@ test('keyboard users can create and select a first note and hear its creation', 
     const user = userEvent.setup();
     render(<PianoRollEditor />);
     await user.tab(); // timeline
-    await user.tab(); // pitch
+    await user.tab();
+    expect(document.activeElement).toBe(
+        screen.getByRole('combobox', { name: 'Snap' }),
+    );
+    await user.tab();
     expect(document.activeElement).toBe(
         screen.getByRole('spinbutton', { name: 'New note pitch' }),
     );

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import * as Tone from 'tone';
 import { toast } from 'sonner';
-import { DEFAULT_NOTE_VELOCITY } from '@/features/piano-roll/constants';
+import { DEFAULT_NOTE_VELOCITY } from '@/features/piano-roll/constants/music';
 import { getInstrumentStatus } from '@/features/piano-roll/audio/instrumentStatus';
 
 type Options = {

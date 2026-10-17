@@ -1,7 +1,7 @@
 import * as Tone from 'tone';
 import type { RefObject } from 'react';
 import type { Note } from '@/features/piano-roll/types';
-import { PPQ } from '@/features/piano-roll/constants';
+import { PPQ } from '@/features/piano-roll/constants/music';
 import {
     getAudibleNotes,
     getPlaybackReleases,

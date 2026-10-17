@@ -4,7 +4,10 @@ import {
     INITIAL_BAR_COUNT,
     PPQ,
     BAR_COUNTS,
-} from '@/features/piano-roll/constants';
+    DEFAULT_BPM,
+    DEFAULT_SNAP_TICKS,
+    type SnapTicks,
+} from '@/features/piano-roll/constants/music';
 import { usePianoRollEditor } from '@/features/piano-roll/hooks/editor/usePianoRollEditor';
 import { EditorHeader } from '@/features/piano-roll/components/editor/EditorHeader';
 import { EditorFooter } from '@/features/piano-roll/components/editor/EditorFooter';
@@ -18,8 +21,12 @@ import { EditorSettingsPanel } from '@/features/piano-roll/components/editor/Edi
 import type { Note } from '@/features/piano-roll/types';
 import { useProjectPersistence } from '@/features/piano-roll/hooks/projects/useProjectPersistence';
 import { ProjectPanel } from '@/features/piano-roll/components/projects/ProjectPanel';
+import { SnapSelect } from '@/features/piano-roll/components/toolbar/SnapSelect';
+import { BpmInput } from '@/features/piano-roll/components/playback/BpmInput';
 
 type Props = {
+    bpm?: number;
+    onBpmChange?: (bpm: number) => boolean;
     playbackControls?: ReactNode;
     onTogglePlayback?: () => void;
     getPlaybackTick?: () => number;
@@ -31,6 +38,8 @@ type Props = {
 };
 
 export function PianoRollEditor({
+    bpm = DEFAULT_BPM,
+    onBpmChange,
     playbackControls,
     onTogglePlayback,
     getPlaybackTick,
@@ -41,18 +50,21 @@ export function PianoRollEditor({
     sampleControls,
 }: Props) {
     const [barCount, setBarCount] = useState(INITIAL_BAR_COUNT);
+    const [snapTicks, setSnapTicks] = useState<SnapTicks>(DEFAULT_SNAP_TICKS);
     const endTick = barCount * BEATS_PER_BAR * PPQ;
-    const editor = usePianoRollEditor(endTick, onTogglePlayback);
+    const editor = usePianoRollEditor(endTick, onTogglePlayback, snapTicks);
     const { notes: editorNotes, viewport, requestRedraw } = editor;
     const importedNoteRef = useRef<Note | null>(null);
     const projectControls = useProjectPersistence({
         barCount,
+        bpm,
         canLoad: () => editor.interactions.gestureModeRef.current === 'idle',
-        onBeforeLoad: () => {
+        onBeforeLoad: (project) => {
             editor.setPreserveViewOnStop(
                 playbackState !== 'stopped' && !!onStopPlayback,
             );
-            onStopPlayback?.();
+            if (project.bpm !== bpm && onBpmChange) onBpmChange(project.bpm);
+            else onStopPlayback?.();
         },
         onLoaded: (project) => {
             importedNoteRef.current = null;
@@ -74,6 +86,46 @@ export function PianoRollEditor({
             aria-label="Piano roll workspace"
         >
             <EditorHeader
+                snapControl={
+                    <SnapSelect
+                        value={snapTicks}
+                        onValueChange={(next) => {
+                            if (
+                                editor.interactions.gestureModeRef.current !==
+                                'idle'
+                            ) {
+                                editor.interactions.announce(
+                                    'Finish the active edit before changing snap.',
+                                );
+                                return;
+                            }
+                            setSnapTicks(next);
+                            editor.interactions.announce(
+                                `Snap set to ${next} ticks`,
+                            );
+                        }}
+                    />
+                }
+                tempoControl={
+                    onBpmChange && (
+                        <BpmInput
+                            value={bpm}
+                            onCommit={(next) => {
+                                if (
+                                    editor.interactions.gestureModeRef
+                                        .current !== 'idle'
+                                )
+                                    return false;
+                                const accepted = onBpmChange(next);
+                                if (accepted && next !== bpm)
+                                    editor.interactions.announce(
+                                        `Tempo set to ${next} BPM. Playback reset.`,
+                                    );
+                                return accepted;
+                            }}
+                        />
+                    )
+                }
                 settingsControls={
                     <EditorSettingsPanel
                         sampleControls={sampleControls}
@@ -116,6 +168,7 @@ export function PianoRollEditor({
                 insertionForm={
                     <NoteInsertionForm
                         endTick={endTick}
+                        snapTicks={snapTicks}
                         onAdd={editor.interactions.addNote}
                     />
                 }

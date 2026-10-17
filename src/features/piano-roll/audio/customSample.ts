@@ -7,8 +7,6 @@ export type CustomSample = {
 export const MAX_SAMPLE_BYTES = 20 * 1024 * 1024;
 export const MAX_SAMPLE_SECONDS = 30;
 export const MAX_DECODED_SAMPLE_BYTES = 128 * 1024 * 1024;
-// Tone.Sampler searches at most 95 semitones from each sample. This root
-// range keeps every editor pitch (MIDI 0–127) within that search distance.
 export const MIN_SAMPLE_ROOT = 32;
 export const MAX_SAMPLE_ROOT = 95;
 

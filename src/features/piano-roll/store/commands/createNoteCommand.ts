@@ -1,6 +1,6 @@
 import type { Note } from '@/features/piano-roll/types';
 import type { NoteCommand } from './types';
-import { SNAP_TICKS } from '@/features/piano-roll/constants';
+import { MIN_NOTE_DURATION_TICKS } from '@/features/piano-roll/constants/music';
 import { selectedNoteIds } from '@/features/piano-roll/store/noteSelection';
 
 function unchangedSelection(notes: Record<string, Note>) {
@@ -98,7 +98,7 @@ export function createResizeNotesCommand(
         if (
             !note ||
             !Number.isInteger(durationTicks) ||
-            durationTicks < SNAP_TICKS ||
+            durationTicks < MIN_NOTE_DURATION_TICKS ||
             note.durationTicks === durationTicks
         )
             return [];
@@ -117,4 +117,25 @@ export function createResizeNotesCommand(
               changes,
               selection: unchangedSelection(notes),
           };
+}
+
+export function createVelocityCommand(
+    notes: Record<string, Note>,
+    id: string,
+    velocity: number,
+): NoteCommand | null {
+    const note = notes[id];
+    if (
+        !note ||
+        !Number.isInteger(velocity) ||
+        velocity < 0 ||
+        velocity > 127 ||
+        note.velocity === velocity
+    )
+        return null;
+    return {
+        type: 'SET_VELOCITY',
+        changes: [{ id, from: { velocity: note.velocity }, to: { velocity } }],
+        selection: unchangedSelection(notes),
+    };
 }

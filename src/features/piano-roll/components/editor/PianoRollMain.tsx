@@ -1,10 +1,11 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import type { PianoRollEditorModel } from '@/features/piano-roll/hooks/editor/usePianoRollEditor';
-import { RULER_HEIGHT } from '@/features/piano-roll/constants';
+import { RULER_HEIGHT } from '@/features/piano-roll/constants/viewport';
 import { PianoKeys } from '@/features/piano-roll/components/grid/PianoKeys';
 import { PianoRollRuler } from '@/features/piano-roll/components/grid/PianoRollRuler';
 import { PianoRollSurface } from '@/features/piano-roll/components/grid/PianoRollSurface';
 import { StudioSidebar } from '@/features/piano-roll/components/editor/StudioSidebar';
+import { VelocityLane } from '@/features/piano-roll/components/velocity/VelocityLane';
 
 export function PianoRollMain({
     editor,
@@ -15,8 +16,9 @@ export function PianoRollMain({
     playhead?: ReactNode;
     onPreviewPitch?: (pitch: number) => void;
 }) {
+    const workspaceRef = useRef<HTMLDivElement>(null);
     return (
-        <div className="workspace-grid min-h-0 flex-1">
+        <div ref={workspaceRef} className="workspace-grid min-h-0 flex-1">
             <div
                 className="flex items-center justify-center border-r border-b border-border bg-secondary text-xs text-muted-foreground"
                 style={{ height: RULER_HEIGHT }}
@@ -35,6 +37,7 @@ export function PianoRollMain({
             </div>
             <PianoRollSurface editor={editor} playhead={playhead} />
             <StudioSidebar />
+            <VelocityLane editor={editor} workspaceRef={workspaceRef} />
         </div>
     );
 }

@@ -2,13 +2,16 @@ import {
     BAR_COUNTS,
     BEATS_PER_BAR,
     PPQ,
-} from '@/features/piano-roll/constants';
+    DEFAULT_BPM,
+} from '@/features/piano-roll/constants/music';
 import { isValidMidiNote } from '@/features/piano-roll/midi/isValidMidiNote';
 import type { Note } from '@/features/piano-roll/types';
+import { isValidBpm } from '@/features/piano-roll/utils/time/isValidBpm';
 
 export type ProjectRecord = {
     id: 'local';
-    version: 1;
+    version: 2;
+    bpm: number;
     ppq: typeof PPQ;
     beatsPerBar: typeof BEATS_PER_BAR;
     barCount: number;
@@ -24,7 +27,7 @@ export function parseProjectRecord(value: unknown): ProjectRecord {
     if (
         !isRecord(value) ||
         value.id !== 'local' ||
-        value.version !== 1 ||
+        (value.version !== 1 && value.version !== 2) ||
         value.ppq !== PPQ ||
         value.beatsPerBar !== BEATS_PER_BAR ||
         typeof value.barCount !== 'number' ||
@@ -39,6 +42,10 @@ export function parseProjectRecord(value: unknown): ProjectRecord {
         );
     }
 
+    const bpm = value.version === 1 ? DEFAULT_BPM : value.bpm;
+    if (!isValidBpm(bpm)) {
+        throw new Error('The saved project contains an invalid BPM.');
+    }
     const ids = new Set<string>();
     const notes = Array.from(value.notes, (entry: unknown) => {
         if (
@@ -71,7 +78,8 @@ export function parseProjectRecord(value: unknown): ProjectRecord {
 
     return {
         id: 'local',
-        version: 1,
+        version: 2,
+        bpm,
         ppq: PPQ,
         beatsPerBar: BEATS_PER_BAR,
         barCount: value.barCount,
@@ -83,10 +91,12 @@ export function parseProjectRecord(value: unknown): ProjectRecord {
 export function createProjectRecord(
     notes: Record<string, Note>,
     barCount: number,
+    bpm: number,
 ): ProjectRecord {
     return parseProjectRecord({
         id: 'local',
-        version: 1,
+        version: 2,
+        bpm,
         ppq: PPQ,
         beatsPerBar: BEATS_PER_BAR,
         barCount,

@@ -92,7 +92,11 @@ test('keyboard-only insertion, movement, reveal and deletion', async ({
     await expect(
         page.getByRole('combobox', { name: 'Timeline length' }),
     ).toBeFocused();
-    await page.keyboard.press('Tab'); // pitch
+    await page.keyboard.press('Tab');
+    await expect(
+        page.getByRole('combobox', { name: 'Snap', exact: true }),
+    ).toBeFocused();
+    await page.keyboard.press('Tab');
     await page.keyboard.press('Tab'); // tick
     await page.keyboard.press('Tab'); // add
     await page.keyboard.press('Enter');
@@ -716,3 +720,73 @@ test('measures real Canvas rendering for a 1000-note viewport', async ({
     expect(timings.meanMs).toBeGreaterThanOrEqual(0);
     // Diagnostic timing, deliberately not a machine-dependent FPS assertion.
 });
+
+for (const selected of [true, false]) {
+    for (const transformed of [false, true]) {
+        test(`empty-grid drawing uses the clicked cell with selected=${selected}, zoom/pan/scaled=${transformed}`, async ({
+            page,
+        }) => {
+            const reference = { ...base, startTick: 960, selected: true };
+            await seed(page, [reference]);
+            const grid = page.getByRole('img', { name: 'Time grid preview' });
+            const overlay = page.locator('[data-note-overlay]');
+            await expect(overlay).toBeVisible();
+            if (transformed) {
+                await grid.evaluate((element) => {
+                    (element as HTMLCanvasElement).style.width = '300px';
+                    (element as HTMLCanvasElement).style.height = '120px';
+                });
+                await page
+                    .getByRole('button', {
+                        name: 'Editor controls',
+                        exact: true,
+                    })
+                    .click();
+                await page
+                    .getByRole('button', { name: 'Zoom in', exact: true })
+                    .click();
+                await page
+                    .getByRole('button', { name: 'Pan right', exact: true })
+                    .click();
+            }
+            const view = await overlay.evaluate((element, reference) => {
+                const grid = document.querySelector<HTMLCanvasElement>(
+                    'canvas[aria-label="Time grid preview"]',
+                )!;
+                const ratio =
+                    Number(grid.dataset.logicalWidth) / grid.clientWidth;
+                const style = (element as HTMLElement).style;
+                const pixelsPerTick =
+                    (parseFloat(style.width) * ratio) / reference.durationTicks;
+                return {
+                    pixelsPerTick,
+                    scrollOffsetX:
+                        reference.startTick * pixelsPerTick -
+                        parseFloat(style.left) * ratio,
+                };
+            }, reference);
+            if (transformed) expect(view.scrollOffsetX).toBeGreaterThan(0);
+            const existing = { ...reference, selected };
+            await seed(page, [existing]);
+            const startTick =
+                (Math.ceil(view.scrollOffsetX / view.pixelsPerTick / 120) + 1) *
+                120;
+            const logicalX =
+                (startTick + 90) * view.pixelsPerTick - view.scrollOffsetX;
+            const click = await position(page, logicalX, 50);
+            await page.mouse.click(click.x, click.y);
+            await expect
+                .poll(async () => Object.keys(await readNotes(page)).length)
+                .toBe(2);
+            const notes = await readNotes(page);
+            expect(notes.a).toEqual(existing);
+            const inserted = Object.values(notes).find(
+                (note) => note.id !== 'a',
+            );
+            expect(inserted).toMatchObject({ startTick, pitch: 70 });
+            await expect(
+                page.getByRole('status', { name: 'Note editing status' }),
+            ).toHaveText(`Added pitch 70 at tick ${startTick}`);
+        });
+    }
+}

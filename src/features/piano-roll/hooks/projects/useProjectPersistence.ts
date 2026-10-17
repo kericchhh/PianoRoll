@@ -13,8 +13,9 @@ import {
 
 type Options = {
     barCount: number;
+    bpm: number;
     canLoad?: () => boolean;
-    onBeforeLoad?: () => void;
+    onBeforeLoad?: (project: ProjectRecord) => void;
     onLoaded?: (project: ProjectRecord) => void;
     announce?: (message: string) => void;
 };
@@ -50,9 +51,10 @@ export function useProjectPersistence(options: Options) {
         try {
             const { notes } = useNoteStore.getState();
             const barCount = optionsRef.current.barCount;
+            const bpm = optionsRef.current.bpm;
             let message: string;
             if (action === 'save') {
-                await saveProject(createProjectRecord(notes, barCount));
+                await saveProject(createProjectRecord(notes, barCount, bpm));
                 message = 'Project saved in this browser.';
             } else {
                 if (optionsRef.current.canLoad?.() === false)
@@ -69,13 +71,14 @@ export function useProjectPersistence(options: Options) {
                 if (
                     useNoteStore.getState().notes !== notes ||
                     optionsRef.current.barCount !== barCount ||
+                    optionsRef.current.bpm !== bpm ||
                     optionsRef.current.canLoad?.() === false
                 ) {
                     throw new Error(
                         'The composition changed while loading. Try loading again.',
                     );
                 }
-                optionsRef.current.onBeforeLoad?.();
+                optionsRef.current.onBeforeLoad?.(project);
                 useNoteStore.getState().replaceNotes(
                     project.notes.map((note) => ({
                         ...note,

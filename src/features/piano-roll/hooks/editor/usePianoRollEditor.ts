@@ -14,10 +14,15 @@ import { useNoteInteractions } from '@/features/piano-roll/hooks/notes/useNoteIn
 import { usePianoRollViewport } from '@/features/piano-roll/hooks/editor/usePianoRollViewport';
 import { useZoomPan } from '@/features/piano-roll/hooks/editor/useZoomPan';
 import { useViewportActions } from '@/features/piano-roll/hooks/editor/useViewportActions';
+import {
+    DEFAULT_SNAP_TICKS,
+    type SnapTicks,
+} from '@/features/piano-roll/constants/music';
 
 export function usePianoRollEditor(
     endTick: number,
     onTogglePlayback?: () => void,
+    snapTicks: SnapTicks = DEFAULT_SNAP_TICKS,
 ) {
     const viewport = usePianoRollViewport(endTick);
     const { width, height, getView, reveal, clamp, scaleRef, scrollRef } =
@@ -27,6 +32,7 @@ export function usePianoRollEditor(
     const surfaceRef = useRef<HTMLDivElement>(null);
     const overlayRef = useRef<HTMLDivElement>(null);
     const playheadDrawRef = useRef<(() => void) | null>(null);
+    const velocityDrawRef = useRef<(() => void) | null>(null);
     const preserveViewOnStopRef = useRef(false);
     const cursorRefreshRef = useRef<(() => void) | null>(null);
     const setPreserveViewOnStop = useCallback((preserve: boolean) => {
@@ -49,6 +55,7 @@ export function usePianoRollEditor(
         rulerRef,
         overlayRef,
         playheadDrawRef,
+        velocityDrawRef,
         activeNoteRef,
         previewRef,
         marqueeRef,
@@ -57,6 +64,7 @@ export function usePianoRollEditor(
         width,
         height,
         endTick,
+        snapTicks,
     });
     const requestRedraw = useCallback(() => {
         redrawCanvas();
@@ -76,6 +84,7 @@ export function usePianoRollEditor(
         width,
         height,
         endTick,
+        snapTicks,
         dragCandidateRef,
         previewRef,
         marqueeRef,
@@ -129,9 +138,12 @@ export function usePianoRollEditor(
 
     return {
         viewportActions,
+        snapTicks,
         endTick,
         requestRedraw,
         playheadDrawRef,
+        velocityDrawRef,
+        queryNotes,
         viewport,
         preserveViewOnStopRef,
         setPreserveViewOnStop,

@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { App } from '@/app/App';
 import { usePianoSampler } from '@/features/piano-roll/hooks/playback/usePianoSampler';
 import { usePlayback } from '@/features/piano-roll/hooks/playback/usePlayback';
+import { usePlaybackControls } from '@/features/piano-roll/hooks/playback/usePlaybackControls';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 import type { CustomInstrument } from '@/features/piano-roll/audio/customInstrument';
 
@@ -799,3 +800,159 @@ test('an empty project stays ready to play without scheduling an endless transpo
         document.activeElement,
     );
 });
+
+test('BPM starts at120 and invalid or unchanged values leave playback ownership untouched', () => {
+    const { result } = renderHook(() => usePlayback({ current: null }));
+    const original = useNoteStore.getState();
+    const generation = result.current.getPlaybackGeneration();
+    expect(result.current.bpm).toBe(120);
+    for (const value of [29, 301, 120.5, NaN, Infinity]) {
+        act(() => expect(result.current.changeBpm(value)).toBe(false));
+    }
+    act(() => expect(result.current.changeBpm(120)).toBe(true));
+    expect(result.current.bpm).toBe(120);
+    expect(result.current.getPlaybackGeneration()).toBe(generation);
+    expect(transport.stop).not.toHaveBeenCalled();
+    expect(transport.clear).not.toHaveBeenCalled();
+    expect(transport.schedule).not.toHaveBeenCalled();
+    expect(useNoteStore.getState()).toBe(original);
+});
+
+test.each(['playing', 'paused'] as const)(
+    'changing BPM while %s stops and resets once, invalidates old callbacks and builds one fresh schedule',
+    (state) => {
+        const { result } = renderHook(() => {
+            const instrument = usePianoSampler();
+            return usePlayback(instrument.samplerRef);
+        });
+        act(() => samplers[0].options.onload?.());
+        useNoteStore.setState({
+            notes: {
+                a: {
+                    id: 'a',
+                    pitch: 60,
+                    startTick: 0,
+                    durationTicks: 960,
+                    velocity: 100,
+                    selected: true,
+                },
+            },
+        });
+        const original = useNoteStore.getState();
+        act(() => result.current.togglePlayback());
+        const oldEvents = [...scheduledEvents.values()];
+        act(() => oldEvents.at(-1)?.callback(13));
+        const oldCompletion = [...completionTimers.values()][0];
+        transport.seconds = 0.25;
+        if (state === 'paused') act(() => result.current.togglePlayback());
+        const generation = result.current.getPlaybackGeneration();
+        scheduledEvents.set(999, { callback: vi.fn(), position: 50 });
+        act(() => expect(result.current.changeBpm(93)).toBe(true));
+        expect(result.current.bpm).toBe(93);
+        expect(transport.bpm.value).toBe(93);
+        expect(result.current.playbackState).toBe('stopped');
+        expect(transport.seconds).toBe(0);
+        expect(transport.stop).toHaveBeenCalledTimes(1);
+        expect([...scheduledEvents.keys()]).toEqual([999]);
+        expect(completionTimers.size).toBe(0);
+        expect(result.current.getPlaybackGeneration()).toBeGreaterThan(
+            generation,
+        );
+        expect(useNoteStore.getState()).toBe(original);
+        act(() => result.current.togglePlayback());
+        expect(transport.schedule).toHaveBeenCalledTimes(6);
+        expect(transport.start).toHaveBeenLastCalledWith(undefined, 0);
+        expect([...scheduledEvents.values()].at(-1)?.position).toBeCloseTo(
+            120 / 93,
+        );
+        act(() => {
+            for (const event of oldEvents) event.callback(14);
+            oldCompletion?.();
+        });
+        expect(transport.stop).toHaveBeenCalledTimes(1);
+        expect(result.current.playbackState).toBe('playing');
+        expect(samplers[0].triggerAttack).not.toHaveBeenCalled();
+    },
+);
+
+test('changing BPM invalidates a Play request whose audio activation is still pending', async () => {
+    let enableAudio!: () => void;
+    vi.mocked(Tone.start).mockReturnValue(
+        new Promise<void>((resolve) => {
+            enableAudio = resolve;
+        }),
+    );
+    const { result } = renderHook(() => {
+        const instrument = usePianoSampler();
+        const playback = usePlayback(instrument.samplerRef);
+        const play = usePlaybackControls({
+            samplesReady: instrument.samplesReady,
+            onPlay: playback.togglePlayback,
+            getPlaybackGeneration: playback.getPlaybackGeneration,
+        });
+        return { ...playback, play };
+    });
+    act(() => samplers[0].options.onload?.());
+    useNoteStore.setState({
+        notes: {
+            a: {
+                id: 'a',
+                pitch: 60,
+                startTick: 0,
+                durationTicks: 960,
+                velocity: 100,
+                selected: false,
+            },
+        },
+    });
+    let pending!: Promise<void>;
+    await act(async () => {
+        pending = result.current.play();
+    });
+    act(() => result.current.changeBpm(177));
+    await act(async () => {
+        enableAudio();
+        await pending;
+    });
+    expect(transport.start).not.toHaveBeenCalled();
+    expect(transport.schedule).not.toHaveBeenCalled();
+    expect(result.current.bpm).toBe(177);
+    expect(result.current.playbackState).toBe('stopped');
+});
+
+test.each([
+    [120, 120],
+    [47.99999999999999, 48],
+] as const)(
+    'resubmitting integer tempo %i during playback does not restart a floating-point Tone value',
+    (transportBpm, expected) => {
+        transport.bpm.value = transportBpm;
+        const { result } = renderHook(() => {
+            const instrument = usePianoSampler();
+            return usePlayback(instrument.samplerRef);
+        });
+        act(() => samplers[0].options.onload?.());
+        useNoteStore.setState({
+            notes: {
+                a: {
+                    id: 'a',
+                    pitch: 60,
+                    startTick: 0,
+                    durationTicks: 960,
+                    velocity: 100,
+                    selected: false,
+                },
+            },
+        });
+        expect(result.current.bpm).toBe(expected);
+        act(() => result.current.togglePlayback());
+        const generation = result.current.getPlaybackGeneration();
+        const events = [...scheduledEvents.entries()];
+        act(() => expect(result.current.changeBpm(expected)).toBe(true));
+        expect(transport.stop).not.toHaveBeenCalled();
+        expect(result.current.playbackState).toBe('playing');
+        expect(result.current.getPlaybackGeneration()).toBe(generation);
+        expect([...scheduledEvents.entries()]).toEqual(events);
+        expect(transport.schedule).toHaveBeenCalledTimes(3);
+    },
+);

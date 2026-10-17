@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import type { PlaybackState } from '@/features/piano-roll/audio/playbackTypes';
 import type { PianoRollEditorModel } from '@/features/piano-roll/hooks/editor/usePianoRollEditor';
 import { usePlayheadRenderer } from '@/features/piano-roll/hooks/playback/usePlayheadRenderer';
-import { RULER_HEIGHT } from '@/features/piano-roll/constants';
+import { RULER_HEIGHT } from '@/features/piano-roll/constants/viewport';
 
 type Props = {
     editor: PianoRollEditorModel;

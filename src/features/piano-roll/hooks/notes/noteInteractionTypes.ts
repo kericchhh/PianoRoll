@@ -6,12 +6,15 @@ import type {
 } from '@/features/piano-roll/types';
 import type { NoteRegion } from '@/features/piano-roll/types';
 
+import type { SnapTicks } from '@/features/piano-roll/constants/music';
+
 export type NoteInteractionOptions = {
     canvasRef: RefObject<HTMLCanvasElement | null>;
     width: number;
     height: number;
     getView: () => PianoRollView;
     endTick: number;
+    snapTicks?: SnapTicks;
     dragCandidateRef: RefObject<Note | null>;
     previewRef: RefObject<Record<string, Note> | null>;
     marqueeRef: RefObject<MarqueeRect | null>;

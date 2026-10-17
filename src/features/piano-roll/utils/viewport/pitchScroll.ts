@@ -1,9 +1,9 @@
-import { ROW_HEIGHT } from '@/features/piano-roll/constants';
+import { ROW_HEIGHT } from '@/features/piano-roll/constants/viewport';
 
 export function clampHighestPitch(pitch: number, height: number): number {
     const minimum = Math.min(
         127,
-        Math.max(0, Math.floor(height / ROW_HEIGHT) - 1),
+        Math.max(0, Math.ceil(height / ROW_HEIGHT) - 1),
     );
     return Math.max(minimum, Math.min(127, Math.round(pitch)));
 }

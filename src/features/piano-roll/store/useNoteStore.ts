@@ -6,6 +6,7 @@ import {
     createDeleteNotesCommand,
     createMoveNotesCommand,
     createResizeNotesCommand,
+    createVelocityCommand,
 } from './commands/createNoteCommand';
 import { executeNoteCommand, stepNoteHistory } from './noteHistory';
 import { selectNotesInRecord } from './noteSelection';
@@ -100,6 +101,13 @@ export const useNoteStore = create<NoteStoreState>()((set, get) => {
             ),
         resizeNote: (id, durationTicks) =>
             get().resizeNotes([{ id, durationTicks }]),
+        setNoteVelocity: (id, velocity) =>
+            set((state) =>
+                executeNoteCommand(
+                    state,
+                    createVelocityCommand(state.notes, id, velocity),
+                ),
+            ),
         resizeNotes: (durations) =>
             set((state) =>
                 executeNoteCommand(

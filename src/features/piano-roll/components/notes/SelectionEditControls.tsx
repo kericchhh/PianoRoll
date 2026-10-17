@@ -8,16 +8,21 @@ import {
     UnfoldHorizontal,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
-import { SNAP_TICKS } from '@/features/piano-roll/constants';
+import {
+    DEFAULT_SNAP_TICKS,
+    type SnapTicks,
+} from '@/features/piano-roll/constants/music';
 
 type Props = {
     hasSelection: boolean;
+    snapTicks?: SnapTicks;
     moveSelection: (tickDelta: number, pitchDelta: number) => void;
     resizeSelection: (tickDelta: number) => void;
 };
 
 export function SelectionEditControls({
     hasSelection,
+    snapTicks = DEFAULT_SNAP_TICKS,
     moveSelection,
     resizeSelection,
 }: Props) {
@@ -32,22 +37,22 @@ export function SelectionEditControls({
         {
             label: 'Move earlier',
             Icon: ArrowLeft,
-            action: () => moveSelection(-SNAP_TICKS, 0),
+            action: () => moveSelection(-snapTicks, 0),
         },
         {
             label: 'Move later',
             Icon: ArrowRight,
-            action: () => moveSelection(SNAP_TICKS, 0),
+            action: () => moveSelection(snapTicks, 0),
         },
         {
             label: 'Shorten notes',
             Icon: FoldHorizontal,
-            action: () => resizeSelection(-SNAP_TICKS),
+            action: () => resizeSelection(-snapTicks),
         },
         {
             label: 'Lengthen notes',
             Icon: UnfoldHorizontal,
-            action: () => resizeSelection(SNAP_TICKS),
+            action: () => resizeSelection(snapTicks),
         },
     ];
 
@@ -76,7 +81,7 @@ export function SelectionEditControls({
             ))}
             <span id={descriptionId} className="sr-only">
                 Edit the whole selection. Pitch changes by one semitone;
-                position and duration change by {SNAP_TICKS} ticks.
+                position and duration change by {snapTicks} ticks.
             </span>
         </div>
     );

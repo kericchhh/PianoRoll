@@ -5,7 +5,7 @@ import { drawPlayhead } from '@/features/piano-roll/rendering/playback/drawPlayh
 import { tickToPixel } from '@/features/piano-roll/utils/coordinates/tickToPixel';
 import { scrollForPlayhead } from '@/features/piano-roll/utils/viewport/scrollForPlayhead';
 import { configureCanvas } from '@/shared/utils/configureCanvas';
-import { RULER_HEIGHT } from '@/features/piano-roll/constants';
+import { RULER_HEIGHT } from '@/features/piano-roll/constants/viewport';
 
 type Options = {
     canvasRef: RefObject<HTMLCanvasElement | null>;

@@ -43,3 +43,16 @@ test('draws only visible divisions within the timeline endpoint', () => {
     const positions = vi.mocked(drawTimeLine).mock.calls.map((call) => call[1]);
     expect(positions).toEqual([20, 80]);
 });
+
+test.each([
+    [240, [0, 120, 240, 360, 480, 600]],
+    [480, [0, 240, 480]],
+] as const)(
+    'grid lines follow the chosen %i-tick editing subdivision',
+    (snapTicks, expected) => {
+        drawTimeGrid(context, 600, 240, 0.5, 0, 7680, snapTicks);
+        expect(
+            vi.mocked(drawTimeLine).mock.calls.map((call) => call[1]),
+        ).toEqual(expected);
+    },
+);

@@ -27,6 +27,7 @@ export interface NoteStoreState {
         positions: readonly Pick<Note, 'id' | 'startTick' | 'pitch'>[],
     ) => void;
     resizeNote: (id: string, durationTicks: number) => void;
+    setNoteVelocity: (id: string, velocity: number) => void;
     resizeNotes: (
         durations: readonly Pick<Note, 'id' | 'durationTicks'>[],
     ) => void;
@@ -56,4 +57,11 @@ export interface NoteRegion {
 }
 
 export type GestureMode =
-    'idle' | 'move' | 'resize' | 'marquee' | 'pan' | 'select';
+    | 'idle'
+    | 'move'
+    | 'resize'
+    | 'marquee'
+    | 'pan'
+    | 'select'
+    | 'velocity'
+    | 'velocity-panel';

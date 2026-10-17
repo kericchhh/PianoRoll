@@ -18,6 +18,10 @@ export type NoteCommand = (
       }
     | { type: 'MOVE_NOTES'; changes: readonly Change<NotePosition>[] }
     | { type: 'RESIZE_NOTES'; changes: readonly Change<NoteDuration>[] }
+    | {
+          type: 'SET_VELOCITY';
+          changes: readonly Change<Pick<Note, 'velocity'>>[];
+      }
 ) & {
     selection: { before: readonly string[]; after: readonly string[] };
 };

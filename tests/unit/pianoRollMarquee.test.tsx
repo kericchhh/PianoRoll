@@ -359,3 +359,22 @@ test('canvas draws the marquee above notes and focuses the editor for keyboard o
         screen.getByRole('group', { name: 'Piano roll editor' }),
     );
 });
+
+test.each([
+    { modifiers: {}, expectedMode: 'select' },
+    { modifiers: { ctrlKey: true }, expectedMode: 'marquee' },
+    { modifiers: { metaKey: true }, expectedMode: 'marquee' },
+])(
+    'a filtered empty-grid tap with last=false releases $expectedMode ownership',
+    ({ modifiers, expectedMode }) => {
+        const { result, pointerDown, drag, marqueeRef } = setup();
+        const before = useNoteStore.getState();
+        pointerDown(50, 0, modifiers);
+        expect(result.current.gestureModeRef.current).toBe(expectedMode);
+        // use-gesture may report a filtered tap without its last flag set.
+        drag([0, 0], { last: false, tap: true });
+        expect(result.current.gestureModeRef.current).toBe('idle');
+        expect(marqueeRef.current).toBeNull();
+        expect(useNoteStore.getState()).toBe(before);
+    },
+);

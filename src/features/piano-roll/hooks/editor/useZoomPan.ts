@@ -5,7 +5,7 @@ import { clampScroll } from '@/features/piano-roll/utils/viewport/clampScroll';
 import type { RefObject } from 'react';
 import type { GestureMode } from '@/features/piano-roll/types';
 import { clientToCanvasPoint } from '@/features/piano-roll/utils/coordinates/canvasCoordinates';
-import { VIEWPORT_HEIGHT } from '@/features/piano-roll/constants';
+import { VIEWPORT_HEIGHT } from '@/features/piano-roll/constants/viewport';
 
 type Options = {
     canvasRef: RefObject<HTMLCanvasElement | null>;

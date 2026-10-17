@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { motion } from 'motion/react';
-import { ROW_HEIGHT } from '@/features/piano-roll/constants';
+import { ROW_HEIGHT } from '@/features/piano-roll/constants/viewport';
 import { isBlackKey } from '@/features/piano-roll/utils/notes/isBlackKey';
 import { pitchToNoteName } from '@/features/piano-roll/utils/notes/pitchToNoteName';
 import { usePianoKeyPress } from '@/features/piano-roll/hooks/playback/usePianoKeyPress';

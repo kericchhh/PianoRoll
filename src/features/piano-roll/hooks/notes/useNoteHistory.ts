@@ -13,6 +13,7 @@ const COMMAND_NAMES: Record<NoteCommand['type'], string> = {
     DELETE_NOTES: 'deletion',
     MOVE_NOTES: 'move',
     RESIZE_NOTES: 'resize',
+    SET_VELOCITY: 'velocity change',
 };
 
 type Options = {

@@ -7,6 +7,7 @@ import { useNoteInteractions } from '@/features/piano-roll/hooks/notes/useNoteIn
 import { useZoomPan } from '@/features/piano-roll/hooks/editor/useZoomPan';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 import type { Note } from '@/features/piano-roll/types';
+import type { SnapTicks } from '@/features/piano-roll/constants/music';
 
 vi.mock('@use-gesture/react', () => ({ useDrag: vi.fn(), useWheel: vi.fn() }));
 
@@ -25,7 +26,12 @@ afterEach(() => {
     vi.clearAllMocks();
 });
 
-function setup(notes: Note[] = [original], cssWidth = 600, endTick = 480) {
+function setup(
+    notes: Note[] = [original],
+    cssWidth = 600,
+    endTick = 480,
+    snapTicks: SnapTicks = 120,
+) {
     useNoteStore.setState({
         notes: Object.fromEntries(notes.map((note) => [note.id, note])),
     });
@@ -55,6 +61,7 @@ function setup(notes: Note[] = [original], cssWidth = 600, endTick = 480) {
                 rowHeight: 20,
             }),
             endTick,
+            snapTicks,
             dragCandidateRef,
             previewRef,
             marqueeRef: { current: null },
@@ -350,3 +357,49 @@ test('modifier clicks preserve selection and pan routing at the right edge', () 
     expect(result.current.gestureModeRef.current).toBe('pan');
     expect(dragCandidateRef.current).toBeNull();
 });
+
+test.each([
+    [240, 175],
+    [480, 415],
+] as const)(
+    'right-edge resizing uses the current %i-tick endpoint grid',
+    (snapTicks, durationTicks) => {
+        const note = { ...original, startTick: 65, durationTicks: 130 };
+        const { press, drag } = setup([note], 600, 1920, snapTicks);
+        const before = useNoteStore.getState().undoStack.length;
+        press(95);
+        act(() =>
+            drag({ movement: [30, 0], last: true } as Parameters<
+                typeof drag
+            >[0]),
+        );
+        expect(useNoteStore.getState().notes.a).toEqual({
+            ...note,
+            durationTicks,
+        });
+        expect(useNoteStore.getState().undoStack).toHaveLength(before + 1);
+    },
+);
+
+test.each([240, 480] as const)(
+    'canvas drawing uses the containing %i-tick cell and matching note duration',
+    (snapTicks) => {
+        const { canvas, result } = setup([original], 600, 1920, snapTicks);
+        act(() =>
+            result.current.handleCanvasClick({
+                currentTarget: canvas,
+                clientX: 165,
+                clientY: 50,
+            } as MouseEvent<HTMLCanvasElement>),
+        );
+        const added = Object.values(useNoteStore.getState().notes).find(
+            (note) => note.id !== 'a',
+        );
+        expect(added).toMatchObject({
+            startTick: snapTicks === 240 ? 240 : 0,
+            durationTicks: snapTicks,
+            pitch: 70,
+        });
+        expect(useNoteStore.getState().notes.a).toEqual(original);
+    },
+);

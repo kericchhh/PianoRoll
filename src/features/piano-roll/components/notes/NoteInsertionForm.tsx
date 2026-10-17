@@ -3,16 +3,21 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import {
-    DEFAULT_NOTE_DURATION_TICKS,
-    INITIAL_HIGHEST_PITCH,
-    SNAP_TICKS,
-} from '@/features/piano-roll/constants';
+    DEFAULT_SNAP_TICKS,
+    type SnapTicks,
+} from '@/features/piano-roll/constants/music';
+import { INITIAL_HIGHEST_PITCH } from '@/features/piano-roll/constants/viewport';
 
 type Props = {
     endTick: number;
+    snapTicks?: SnapTicks;
     onAdd: (tick: number, pitch: number, selected: boolean) => boolean;
 };
-export function NoteInsertionForm({ endTick, onAdd }: Props) {
+export function NoteInsertionForm({
+    endTick,
+    onAdd,
+    snapTicks = DEFAULT_SNAP_TICKS,
+}: Props) {
     const [error, setError] = useState('');
     const pitchId = useId();
     const tickId = useId();
@@ -67,8 +72,8 @@ export function NoteInsertionForm({ endTick, onAdd }: Props) {
                     name="tick"
                     type="number"
                     min={0}
-                    max={endTick - DEFAULT_NOTE_DURATION_TICKS}
-                    step={SNAP_TICKS}
+                    max={endTick - snapTicks}
+                    step={snapTicks}
                     defaultValue={0}
                     required
                 />

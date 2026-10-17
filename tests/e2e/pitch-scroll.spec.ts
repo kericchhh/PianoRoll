@@ -144,10 +144,21 @@ test('resizing at the bottom pitch bound fills the taller key viewport', async (
     await expect(pitches.last()).toHaveAttribute('data-piano-pitch', '0');
     const bounds = await keys.boundingBox();
     await expect(pitches).toHaveCount(
-        Math.min(128, Math.floor(bounds!.height / 20)),
+        Math.min(128, Math.ceil(bounds!.height / 20)),
     );
     const lastKey = await pitches.last().boundingBox();
-    expect(lastKey!.y + lastKey!.height).toBeLessThanOrEqual(
+    expect(lastKey!.y).toBeLessThan(bounds!.y + bounds!.height);
+    expect(lastKey!.y + lastKey!.height).toBeGreaterThanOrEqual(
         bounds!.y + bounds!.height,
     );
+    expect(
+        await pitches.evaluateAll((elements) =>
+            elements.every((element) => {
+                const pitch = Number(
+                    (element as HTMLElement).dataset.pianoPitch,
+                );
+                return pitch >= 0 && pitch <= 127;
+            }),
+        ),
+    ).toBe(true);
 });

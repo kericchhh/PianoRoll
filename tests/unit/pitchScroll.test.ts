@@ -24,12 +24,25 @@ test('trackpad deltas accumulate without losing fractional motion or rounding ea
     });
 });
 
-test('viewport bounds reveal the whole bottom key and never show keys outside MIDI 0–127', () => {
+test('viewport bounds fill a partial bottom row and never show keys outside MIDI 0–127', () => {
     expect(clampHighestPitch(200, 240)).toBe(127);
     expect(clampHighestPitch(-100, 240)).toBe(11);
-    expect(clampHighestPitch(-100, 241)).toBe(11);
-    expect(clampHighestPitch(-100, 259)).toBe(11);
+    expect(clampHighestPitch(-100, 241)).toBe(12);
+    expect(clampHighestPitch(-100, 259)).toBe(12);
     expect(clampHighestPitch(-100, 19)).toBe(0);
     expect(clampHighestPitch(72, 240)).toBe(72);
     expect(clampHighestPitch(-100, 3000)).toBe(127);
 });
+
+test.each([1, 19, 20, 21, 239, 240, 241, 259, 260, 1003])(
+    'lowest-pitch viewport of %i pixels has enough valid rows to cover its bottom',
+    (height) => {
+        const highest = clampHighestPitch(-10000, height);
+        const rows = Math.ceil(height / 20);
+        const lowest = highest - rows + 1;
+        expect(lowest).toBe(0);
+        expect(highest).toBeLessThanOrEqual(127);
+        expect((highest + 1) * 20).toBeGreaterThanOrEqual(height);
+        expect(highest * 20).toBeLessThan(height);
+    },
+);

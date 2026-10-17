@@ -1,5 +1,5 @@
 import type { Note } from '@/features/piano-roll/types';
-import { SNAP_TICKS } from '@/features/piano-roll/constants';
+import { MIN_NOTE_DURATION_TICKS } from '@/features/piano-roll/constants/music';
 
 export function resizeNoteGroup(
     notes: readonly Note[],
@@ -19,8 +19,12 @@ export function resizeNoteGroup(
     for (const note of notes) {
         if (!Number.isInteger(note.durationTicks) || note.durationTicks <= 0)
             return notes;
-        if (note.durationTicks < SNAP_TICKS && tickDelta < 0) return notes;
-        minimumDelta = Math.max(minimumDelta, SNAP_TICKS - note.durationTicks);
+        if (note.durationTicks < MIN_NOTE_DURATION_TICKS && tickDelta < 0)
+            return notes;
+        minimumDelta = Math.max(
+            minimumDelta,
+            MIN_NOTE_DURATION_TICKS - note.durationTicks,
+        );
         maximumDelta = Math.min(
             maximumDelta,
             Math.max(0, endTick - note.startTick - note.durationTicks),

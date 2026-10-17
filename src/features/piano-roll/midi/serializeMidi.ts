@@ -1,6 +1,6 @@
 import { Midi } from '@tonejs/midi';
 import type { Note } from '@/features/piano-roll/types';
-import { BEATS_PER_BAR, PPQ } from '@/features/piano-roll/constants';
+import { BEATS_PER_BAR, PPQ } from '@/features/piano-roll/constants/music';
 import { groupMidiNotes } from './groupMidiNotes';
 import { isValidMidiNote } from './isValidMidiNote';
 

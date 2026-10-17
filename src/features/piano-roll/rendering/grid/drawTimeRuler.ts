@@ -1,4 +1,4 @@
-import { BEATS_PER_BAR, PPQ } from '@/features/piano-roll/constants';
+import { BEATS_PER_BAR, PPQ } from '@/features/piano-roll/constants/music';
 import type { PianoRollView } from '@/features/piano-roll/types';
 import { tickToPixel } from '@/features/piano-roll/utils/coordinates/tickToPixel';
 import { PIANO_ROLL_COLORS } from '@/features/piano-roll/rendering/colors';

@@ -4,6 +4,8 @@ import { EditorPlaybackPanel } from '@/features/piano-roll/components/playback/E
 
 type Props = {
     timeline: ReactNode;
+    snapControl?: ReactNode;
+    tempoControl?: ReactNode;
     insertionForm: ReactNode;
     historyControls: ReactNode;
     settingsControls: ReactNode;
@@ -13,6 +15,8 @@ type Props = {
 
 export function EditorHeader({
     timeline,
+    snapControl,
+    tempoControl,
     insertionForm,
     historyControls,
     settingsControls,
@@ -23,11 +27,15 @@ export function EditorHeader({
         <header className="editor-toolbar border-b-2 border-border bg-secondary">
             <EditorToolbar
                 timeline={timeline}
+                snapControl={snapControl}
                 insertionForm={insertionForm}
                 historyControls={historyControls}
                 settingsControls={settingsControls}
             />
-            <EditorPlaybackPanel waveform={playbackWaveform}>
+            <EditorPlaybackPanel
+                waveform={playbackWaveform}
+                tempoControl={tempoControl}
+            >
                 {playbackControls}
             </EditorPlaybackPanel>
         </header>

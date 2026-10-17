@@ -15,6 +15,7 @@ import {
 import { drawNote } from '@/features/piano-roll/rendering/notes/drawNote';
 import { drawMarquee } from '@/features/piano-roll/rendering/notes/drawMarquee';
 import { PIANO_ROLL_COLORS } from '@/features/piano-roll/rendering/colors';
+import type { SnapTicks } from '@/features/piano-roll/constants/music';
 
 type Scene = {
     index: NoteIndex;
@@ -22,6 +23,7 @@ type Scene = {
     width: number;
     height: number;
     endTick: number;
+    snapTicks?: SnapTicks;
     previews: Record<string, Note> | null;
     marquee: MarqueeRect | null;
 };
@@ -41,6 +43,7 @@ export function drawPianoRoll(context: CanvasRenderingContext2D, scene: Scene) {
         view.pixelsPerTick,
         view.scrollOffsetX,
         endTick,
+        scene.snapTicks,
     );
     drawPitchRows(context, gridWidth, height, view.rowHeight);
     const region = {

@@ -1,4 +1,4 @@
-import { RULER_HEIGHT } from '@/features/piano-roll/constants';
+import { RULER_HEIGHT } from '@/features/piano-roll/constants/viewport';
 import { PIANO_ROLL_COLORS } from '@/features/piano-roll/rendering/colors';
 
 export function drawPlayhead(
