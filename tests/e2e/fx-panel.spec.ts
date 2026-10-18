@@ -208,12 +208,25 @@ test('short desktop rack and FX drawer let pointer users reach presets', async (
     await page.setViewportSize({ width: 980, height: 400 });
     await page.getByRole('button', { name: 'FX', exact: true }).click();
     const drawer = page.getByRole('dialog', { name: 'FX' });
+    await expect(drawer).toBeInViewport({ ratio: 1 });
     const drawerBox = await drawer.boundingBox();
-    await page.mouse.move(drawerBox!.x + 100, drawerBox!.y + 150);
-    await page.mouse.wheel(0, 300);
-    await expect
-        .poll(() => drawer.evaluate((element) => element.scrollTop))
-        .toBeGreaterThan(0);
+    const overflows = await drawer.evaluate(
+        (element) => element.scrollHeight > element.clientHeight + 1,
+    );
+    if (overflows) {
+        await page.mouse.move(drawerBox!.x + 100, drawerBox!.y + 150);
+        await page.mouse.wheel(0, 300);
+        await expect
+            .poll(() => drawer.evaluate((element) => element.scrollTop))
+            .toBeGreaterThan(0);
+    } else {
+        const presetsBox = await drawer
+            .getByRole('region', { name: 'FX presets' })
+            .boundingBox();
+        expect(presetsBox!.y + presetsBox!.height).toBeLessThanOrEqual(
+            drawerBox!.y + drawerBox!.height + 1,
+        );
+    }
     await drawer.getByRole('button', { name: 'Echo' }).click();
     await expect(drawer.getByRole('button', { name: 'Echo' })).toHaveAttribute(
         'aria-pressed',
