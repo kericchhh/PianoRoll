@@ -78,11 +78,7 @@ export function NoteInsertionForm({
                     required
                 />
             </div>
-            <Button
-                type="submit"
-                variant="outline"
-                className="border-primary text-primary"
-            >
+            <Button type="submit" variant="default">
                 Add note
             </Button>
             {error && <p role="alert">{error}</p>}

@@ -5,6 +5,7 @@ import {
     type ProjectRecord,
 } from '@/features/piano-roll/persistence/projectRecord';
 import type { Note } from '@/features/piano-roll/types';
+import { DEFAULT_FX_SETTINGS } from '@/features/piano-roll/audio/fxSettings';
 
 const note: Note = {
     id: 'exact-id',
@@ -19,12 +20,13 @@ function project(): ProjectRecord {
     void _selected;
     return {
         id: 'local',
-        version: 2,
+        version: 3,
         bpm: 120,
         ppq: 480,
         beatsPerBar: 4,
         barCount: 4,
         savedAt: 1000,
+        fx: DEFAULT_FX_SETTINGS,
         notes: [saved],
     };
 }
@@ -65,7 +67,7 @@ test.each([
     'project',
     {},
     { ...project(), id: 'another-slot' },
-    { ...project(), version: 3 },
+    { ...project(), version: 4 },
     { ...project(), ppq: 960 },
     { ...project(), beatsPerBar: 3 },
     { ...project(), barCount: 12 },
@@ -119,18 +121,25 @@ test('rejects a note endpoint beyond safe integer precision', () => {
 });
 
 test('version one projects migrate to the current record shape with the default tempo', () => {
-    const { bpm, ...legacy } = project();
+    const { bpm, fx: _fx, ...legacy } = project();
     expect(bpm).toBe(120);
+    void _fx;
     const parsed = parseProjectRecord({ ...legacy, version: 1 });
     expect(parsed).toEqual(project());
     expect(parsed.notes).not.toBe(legacy.notes);
+});
+
+test('version two projects migrate to effects-off defaults', () => {
+    const { fx: _fx, ...legacy } = project();
+    void _fx;
+    expect(parseProjectRecord({ ...legacy, version: 2 })).toEqual(project());
 });
 
 test.each([30, 93, 120, 177, 300])(
     'project tempo %i round-trips without persisting local editing preferences',
     (bpm) => {
         const record = createProjectRecord({ [note.id]: note }, 16, bpm);
-        expect(record.version).toBe(2);
+        expect(record.version).toBe(3);
         expect(record.bpm).toBe(bpm);
         expect(parseProjectRecord(record)).toEqual(record);
         expect(record).not.toHaveProperty('snapTicks');
@@ -144,3 +153,33 @@ test.each([undefined, null, '120', NaN, Infinity, 29, 301, 120.5])(
         expect(() => createProjectRecord({}, 8, bpm as number)).toThrow();
     },
 );
+
+test('new project saves retain FX settings and older records load with effects off', () => {
+    const fx = {
+        reverb: { enabled: true, room: 3.2, mix: 28 },
+        delay: { enabled: true, time: 320, mix: 24 },
+        chorus: { enabled: false, depth: 45, mix: 20 },
+    };
+    const saved = createProjectRecord({}, 8, 120, fx);
+    expect(saved.version).toBe(3);
+    expect(saved.fx).toEqual(fx);
+    expect(parseProjectRecord(saved).fx).toEqual(fx);
+    expect(parseProjectRecord(project()).fx).toEqual({
+        reverb: { enabled: false, room: 2, mix: 22 },
+        delay: { enabled: false, time: 240, mix: 18 },
+        chorus: { enabled: false, depth: 45, mix: 20 },
+    });
+});
+
+test('malformed saved FX values are rejected before project replacement', () => {
+    const record = {
+        ...project(),
+        version: 3,
+        fx: {
+            reverb: { enabled: true, room: 3, mix: 150 },
+            delay: { enabled: false, time: 240, mix: 18 },
+            chorus: { enabled: false, depth: 45, mix: 20 },
+        },
+    };
+    expect(() => parseProjectRecord(record)).toThrow();
+});

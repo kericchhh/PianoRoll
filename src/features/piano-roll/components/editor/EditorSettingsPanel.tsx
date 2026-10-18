@@ -57,9 +57,14 @@ export function EditorSettingsPanel({
             }}
         >
             <SheetTrigger asChild>
-                <Button type="button" variant="outline">
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label="Settings"
+                    title="Settings"
+                >
                     <SlidersHorizontal aria-hidden="true" />
-                    Settings
                 </Button>
             </SheetTrigger>
             <SheetContent open={open} aria-modal="true">
@@ -80,7 +85,7 @@ export function EditorSettingsPanel({
                         </SheetClose>
                     </div>
                     <SheetDescription className="mt-2 text-sm text-muted-foreground">
-                        Manage your project files.
+                        Manage instruments and projects.
                     </SheetDescription>
                 </header>
                 <Tabs.Root

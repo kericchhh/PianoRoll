@@ -75,6 +75,7 @@ test('pause releases held samples, resume reattacks, and completed playback can 
             if (
                 this.buffer &&
                 this.buffer.duration > 1 &&
+                !this.loop &&
                 args[0] instanceof GainNode
             ) {
                 sampleGains.add(args[0].gain);
@@ -112,7 +113,7 @@ test('pause releases held samples, resume reattacks, and completed playback can 
         }
         const startSample = AudioBufferSourceNode.prototype.start;
         AudioBufferSourceNode.prototype.start = function (...args) {
-            if (this.buffer && this.buffer.duration > 1) {
+            if (this.buffer && this.buffer.duration > 1 && !this.loop) {
                 const playbackWindow = window as Window & {
                     __pianoSampleStarts?: number;
                 };

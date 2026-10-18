@@ -17,8 +17,11 @@ export function PlaybackControls({
             <PlaybackStatus state={playbackState} />
             <Button
                 aria-label={isPlaying ? 'Pause' : 'Play'}
+                className="transport-button"
+                data-playing={isPlaying}
                 onClick={onPlay}
                 type="button"
+                variant="ghost"
                 size="icon"
             >
                 {isPlaying ? (

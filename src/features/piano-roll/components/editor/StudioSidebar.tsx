@@ -1,12 +1,12 @@
-import { Skeleton } from '@/shared/components/ui/skeleton';
+import { FxPanel } from '@/features/piano-roll/components/fx/FxPanel';
 
 export function StudioSidebar() {
     return (
         <aside
-            aria-hidden="true"
-            className="studio-sidebar min-h-0 border-l-2 border-border bg-secondary"
+            aria-label="Effects"
+            className="studio-sidebar min-h-0 overflow-y-auto border-l-2 border-border bg-secondary"
         >
-            <Skeleton className="h-full w-full animate-none bg-transparent" />
+            <FxPanel />
         </aside>
     );
 }

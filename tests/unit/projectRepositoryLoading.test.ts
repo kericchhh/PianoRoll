@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import type { ProjectRecord } from '@/features/piano-roll/persistence/projectRecord';
+import { DEFAULT_FX_SETTINGS } from '@/features/piano-roll/audio/fxSettings';
 
 let stored: unknown;
 let moduleGate: Promise<void> | undefined;
@@ -13,12 +14,13 @@ const get = vi.fn(async () => stored);
 function project(): ProjectRecord {
     return {
         id: 'local',
-        version: 2,
+        version: 3,
         bpm: 93,
         ppq: 480,
         beatsPerBar: 4,
         barCount: 16,
         savedAt: 1000,
+        fx: structuredClone(DEFAULT_FX_SETTINGS),
         notes: [
             {
                 id: 'exact-note',
@@ -94,6 +96,7 @@ test('save snapshots composition data before waiting for the first database modu
         input.bpm = 170;
         input.barCount = 4;
         input.notes[0].velocity = 127;
+        input.fx.reverb.mix = 44;
         input.notes.push({ ...input.notes[0], id: 'later-edit' });
         expect(put).not.toHaveBeenCalled();
         release();

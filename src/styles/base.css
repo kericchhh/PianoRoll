@@ -1,0 +1,93 @@
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+    --font-sans: 'IBM Plex Sans', sans-serif;
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-roll-background: var(--roll-background);
+    --radius-sm: var(--radius);
+    --radius-md: var(--radius);
+    --radius-lg: var(--radius);
+    --radius-xl: var(--radius);
+}
+
+:root {
+    color-scheme: dark;
+    --radius: 0px;
+    --studio-black: #000000;
+    --studio-graphite: #171717;
+    --studio-panel: #242424;
+    --studio-bone: #f1eee7;
+    --studio-ash: #b5b1aa;
+    --studio-peach: #ffb18a;
+    --studio-pink: #e4a0bd;
+    --studio-control-rim: #66635f;
+    --studio-control-highlight: #42413e;
+    --studio-control-shadow: #171717;
+    --studio-control-inset: #20201f;
+    --studio-control-hover-highlight: #55514d;
+    --studio-control-hover-shadow: #242424;
+    --background: var(--studio-black);
+    --foreground: var(--studio-bone);
+    --popover: var(--studio-panel);
+    --popover-foreground: var(--foreground);
+    --primary: var(--studio-peach);
+    --primary-foreground: var(--studio-black);
+    --secondary: var(--studio-graphite);
+    --secondary-foreground: var(--foreground);
+    --muted: var(--studio-panel);
+    --muted-foreground: var(--studio-ash);
+    --accent: var(--studio-bone);
+    --accent-foreground: var(--studio-black);
+    --destructive: #ff8796;
+    --destructive-foreground: var(--primary-foreground);
+    --border: #4b4b49;
+    --input: #87847d;
+    --ring: var(--studio-pink);
+    --roll-background: #0b0b0b;
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply min-h-screen overflow-hidden bg-background font-sans text-foreground antialiased;
+    }
+    ::selection {
+        background: var(--primary);
+        color: var(--primary-foreground);
+    }
+}
+
+.editor-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.workspace-grid {
+    --pitch-key-width: 72px;
+    display: grid;
+    grid-template-columns: var(--pitch-key-width) minmax(0, 1fr) 224px;
+    grid-template-rows: 32px minmax(0, 1fr) auto;
+}
+
+.studio-sidebar {
+    grid-column: 3;
+    grid-row: 1 / -1;
+}

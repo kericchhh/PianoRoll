@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { FxDrawer } from '@/features/piano-roll/components/fx/FxDrawer';
 
 type Props = {
     timeline: ReactNode;
@@ -27,7 +28,10 @@ export function EditorToolbar({
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                 {insertionForm}
-                {settingsControls}
+                <div className="flex items-center gap-2">
+                    {settingsControls}
+                    <FxDrawer />
+                </div>
             </div>
         </section>
     );

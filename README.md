@@ -2,16 +2,15 @@
 
 Client-side MIDI note editor, built incrementally with React, TypeScript, Zustand,
 Canvas 2D, use-gesture, and shadcn/ui with Radix primitives. Playback and command-based
-undo/redo, MIDI import/export, custom audio samples, and local project save/load
-are implemented.
+undo/redo, MIDI import/export, custom audio samples, a live FX rack, and local
+project save/load are implemented.
 
 The workspace fills the browser viewport, with pitch-reference keys on the left,
-tools and note insertion across the top, playback at the upper right, and a
-blank panel reserved beside the grid. Canvas dimensions follow the available
+tools and note insertion across the top, playback at the upper right, and an
+FX rack beside the grid. Canvas dimensions follow the available
 panel size; pitch rows stay 20 CSS pixels high. Below 1024 pixels wide, the right
-panel hides and playback moves below the tools to give the grid more room.
-Unfinished transport, tempo, and Mix / FX controls are
-represented by empty, static placeholders without labels or mock controls.
+panel hides, playback moves below the tools, and a compact FX button opens the
+rack in a right-side drawer.
 The left piano keys preview their pitch on pointer press, Enter, or Space, using
 a short piano sound without inserting notes or changing selection or history.
 One Tab stop enters the visible keys; Up/Down selects the next pitch and scrolls
@@ -116,7 +115,7 @@ If a focused note disappears, focus returns to the editor. History stays in memo
 for this tab and is not saved across reloads.
 
 Settings opens a panel from the left, with Import MIDI, Export MIDI, instrument
-sample controls, and local project save/load. The panel
+sample controls and local project save/load. The panel
 overlays the workspace without resizing the grid, traps keyboard focus, closes
 with Escape or its close button, and returns focus to Settings. Motion for React
 animates the panel; reduced motion skips the animation and follows live preference
@@ -144,6 +143,26 @@ that overflow the MIDI writer's variable-length integers.
 Settings uses MIDI, Instrument, and Project tabs in a fixed panel. Only the pending sample
 list scrolls; its load/cancel actions remain visible. A GitHub icon in the lower
 right links to the repository.
+
+The right FX rack has Reverb, Delay, and Chorus, each with a small metal toggle
+(up for On, down for Off) and two rotary controls. Drag a knob vertically or use
+Arrow keys, Home, and End;
+its accessible value and visible readout stay in sync. Escape cancels an edit.
+Room changes commit on release because rebuilding the reverb impulse takes time.
+The same effect chain shapes playback and piano-key previews, while MIDI export
+contains the dry note data. All effects start off and settings stay in this browser tab
+until saved with a project. Below 1024px, a separate FX button opens the rack
+in a modal right drawer; Escape closes it and returns focus to the trigger.
+A horizontal 12-segment meter below Chorus shows the post-FX output peak from
+−48 to 0 dBFS. It reads the existing waveform tap without React frame updates.
+Clean, Room, Echo, and Wide presets sit below the meter. Selecting one replaces
+the FX settings together; changing a knob or switch shows Custom. Project saves
+store the resulting settings, so the matching preset is restored on load.
+The rack fits without its own scrollbar at typical desktop heights.
+Play/Pause and icon controls use circular raised faces, while text actions use
+the same graphite finish with peach emphasis for primary actions. These finishes
+read CSS theme variables so a later theme picker can change them without
+rewriting the controls.
 
 Import instrument folder replaces the entire playback and preview instrument.
 The folder picker reads nested audio files locally and ignores metadata/hidden
@@ -195,17 +214,20 @@ Sonner. Temporary download URLs are revoked after the browser begins the downloa
 
 Shared controls live in `src/shared/components/ui/`; `components.json` directs
 the shadcn CLI to that folder. Sonner notifications use one app-level Toaster.
-The minimal brutalist theme uses square controls, locally bundled Barlow type,
+The minimal brutalist theme uses square controls, locally bundled IBM Plex Sans type,
 black/graphite surfaces, peach primary actions, and pink focus indicators.
+The font's license is included in `public/IBM-Plex-Sans-OFL.txt`.
+Raised button and knob finishes are the deliberate round exception to the
+square control geometry.
 The [studio palette](docs/palette.md) documents colors and measured contrast.
-CSS tokens live in `src/styles/index.css`; canvas colors live
+CSS tokens live in `src/styles/base.css`; canvas colors live
 in `rendering/colors.ts`. Unselected notes have a thin inset border to separate
 adjacent notes; selected notes have a thicker outline. Black-key grid rows use
 a slightly lighter graphite background aligned with the pitch-reference keys.
 `usePlaybackControls` shares readiness notifications and the audio-start action
 between the playback button and the editor's Space shortcut.
-`usePianoSampler` creates a `Tone.Sampler` in an effect, keeps it in a ref, and
-disposes it on cleanup. Thirty Salamander Grand Piano MP3 samples are bundled
+`usePianoSampler` creates `Tone.Sampler` voices and a shared Tone.js FX chain in
+an effect, keeps them in refs, and disposes them on cleanup. Thirty Salamander Grand Piano MP3 samples are bundled
 in `public/audio/piano/` (about 2 MB), with attribution and the original README.
 They load in the background from the app's own origin. Play shows a loading toast
 until loading completes, then "Piano ready" appears. Loading failures give an
@@ -239,18 +261,19 @@ this browser and origin. Reloading starts an empty editor until Load project is
 pressed. Saving an empty composition is supported.
 
 The versioned record contains note IDs, pitches, tick positions, durations,
-velocities, timeline length, and BPM, plus the fixed 480 PPQ and 4/4 timing metadata.
-Version 2 saves include BPM; version 1 saves remain readable and load at 120 BPM.
+velocities, timeline length, BPM, and FX settings, plus the fixed 480 PPQ and 4/4 timing metadata.
+Version 3 saves include FX. Version 2 saves load with FX off; version 1 saves
+also load at 120 BPM.
 Short imported notes, silent notes, and notes beyond the timeline are retained
 exactly. Selection, undo/redo stacks, viewport, and audio buffers are not saved.
-Loading validates the record before stopping playback, replaces notes and
-timeline and BPM, and clears selection and history. The current instrument stays active;
+Loading validates the record before stopping playback, replaces notes,
+timeline, BPM, and FX settings, and clears selection and history. The current instrument stays active;
 zoom/pan stay in place and clamp to the restored timeline. After a page reload,
 custom instruments must be imported again.
 
 Failed saves preserve the previous database record. Missing, invalid, or
 unreadable saves leave the editor and playback untouched. Loading rejects an
-active gesture or changes to notes, timeline, or BPM during its asynchronous read.
+active gesture or changes to notes, timeline, BPM, or FX during its asynchronous read.
 Duplicate actions are blocked while busy; completions after editor unmount
 cannot replace notes. Accessible status/error messages and toasts report results.
 Persistence runs only on explicit actions, never on drag previews or audio frames.
@@ -280,9 +303,9 @@ disabled, run `npm run prepare` separately. Hooks never stage the entire reposit
 ## Ownership
 
 - `components/`: grouped into `editor/`, `toolbar/`, `grid/`, `notes/`,
-  `playback/`, `midi/`, `projects/`, and `velocity/`. `PianoRollEditor` composes the header, main workspace, and footer.
+  `playback/`, `fx/`, `midi/`, `projects/`, and `velocity/`. `PianoRollEditor` composes the header, main workspace, and footer.
   The header separates tools from playback; the main workspace contains keys,
-  ruler, the editing surface, and the reserved sidebar. The surface composes the
+  ruler, the editing surface, and the FX sidebar. The surface composes the
   grid and playhead canvases, selected-note overlay, context menu, accessible list,
   instructions, and announcements. `EditorSettingsPanel` groups project file actions.
 - `hooks/`: `editor/` owns composition, viewport, grid rendering, and zoom/pan;
@@ -295,7 +318,7 @@ disabled, run `npm run prepare` separately. Hooks never stage the entire reposit
   repository reads/writes; components do not access IndexedDB directly.
 - `midi/`: bounded file/event validation, PPQ conversion, shared note validation,
   pure note grouping and serialization, and browser download handling.
-- `audio/`: sample constraints, shared instrument status, playback session cleanup,
+- `audio/`: sample constraints, FX settings and chain, shared instrument status, playback session cleanup,
   piano sample mapping, playback types, and note-event scheduling; audio files and credits are in
   `public/audio/piano/`.
 - `rendering/`: drawing passes grouped into `grid/`, `notes/`, and `playback/`,

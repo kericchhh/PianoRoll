@@ -18,6 +18,8 @@ import { usePlayback } from '@/features/piano-roll/hooks/playback/usePlayback';
 import { usePlaybackControls } from '@/features/piano-roll/hooks/playback/usePlaybackControls';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
 import type { CustomInstrument } from '@/features/piano-roll/audio/customInstrument';
+import { DEFAULT_FX_SETTINGS } from '@/features/piano-roll/audio/fxSettings';
+import { useFxStore } from '@/features/piano-roll/store/useFxStore';
 
 const {
     samplers,
@@ -27,6 +29,9 @@ const {
     scheduledEvents,
     completionTimers,
     resetEventIds,
+    choruses,
+    delays,
+    reverbs,
 } = vi.hoisted(() => {
     const scheduledEvents = new Map<
         number,
@@ -90,6 +95,25 @@ const {
         dispose: ReturnType<typeof vi.fn>;
         getValue: ReturnType<typeof vi.fn>;
     }[] = [];
+    const choruses: {
+        connect: ReturnType<typeof vi.fn>;
+        dispose: ReturnType<typeof vi.fn>;
+        wet: { rampTo: ReturnType<typeof vi.fn> };
+        depth: number;
+    }[] = [];
+    const delays: {
+        connect: ReturnType<typeof vi.fn>;
+        dispose: ReturnType<typeof vi.fn>;
+        wet: { rampTo: ReturnType<typeof vi.fn> };
+        delayTime: { value: number };
+    }[] = [];
+    const reverbs: {
+        connect: ReturnType<typeof vi.fn>;
+        dispose: ReturnType<typeof vi.fn>;
+        wet: { rampTo: ReturnType<typeof vi.fn> };
+        decay: number;
+        ready: Promise<void>;
+    }[] = [];
     return {
         samplers,
         waveforms,
@@ -101,10 +125,54 @@ const {
             nextEventId = 1;
             nextTimerId = 1;
         },
+        choruses,
+        delays,
+        reverbs,
     };
 });
 
 vi.mock('tone', () => ({
+    Chorus: vi.fn(
+        class {
+            connect = vi.fn();
+            dispose = vi.fn();
+            wet = { rampTo: vi.fn() };
+            depth = 0;
+            frequency = { value: 0 };
+            constructor() {
+                choruses.push(this);
+            }
+            start() {
+                return this;
+            }
+        },
+    ),
+    FeedbackDelay: vi.fn(
+        class {
+            connect = vi.fn();
+            dispose = vi.fn();
+            wet = { rampTo: vi.fn() };
+            delayTime = { value: 0 };
+            constructor() {
+                delays.push(this);
+            }
+        },
+    ),
+    Reverb: vi.fn(
+        class {
+            connect = vi.fn();
+            dispose = vi.fn();
+            wet = { rampTo: vi.fn() };
+            ready = Promise.resolve();
+            decay = 2;
+            constructor() {
+                reverbs.push(this);
+            }
+            toDestination() {
+                return this;
+            }
+        },
+    ),
     start: vi.fn(),
     getTransport: vi.fn(() => transport),
     getContext: vi.fn(() => context),
@@ -172,6 +240,9 @@ vi.mock('@/shared/components/ui/sonner', () => ({ Toaster: () => null }));
 beforeEach(() => {
     samplers.length = 0;
     waveforms.length = 0;
+    choruses.length = 0;
+    delays.length = 0;
+    reverbs.length = 0;
     vi.clearAllMocks();
     scheduledEvents.clear();
     completionTimers.clear();
@@ -180,17 +251,71 @@ beforeEach(() => {
     transport.seconds = 0;
     transport.bpm.value = 120;
     useNoteStore.setState({ notes: {} });
+    useFxStore.getState().setSettings(DEFAULT_FX_SETTINGS);
     vi.mocked(Tone.start).mockResolvedValue(undefined);
 });
 afterEach(cleanup);
 
-test('waveform taps the sampler output and its stable getter follows the active effect lifetime', () => {
+test('playback and preview share one chorus-delay-reverb chain with a post-FX waveform', () => {
+    const { result } = renderHook(usePianoSampler);
+    expect(choruses).toHaveLength(1);
+    expect(delays).toHaveLength(1);
+    expect(reverbs).toHaveLength(1);
+    expect(samplers[0].connect).toHaveBeenCalledWith(choruses[0]);
+    expect(choruses[0].connect).toHaveBeenCalledWith(delays[0]);
+    expect(delays[0].connect).toHaveBeenCalledWith(reverbs[0]);
+    expect(reverbs[0].connect).toHaveBeenCalledWith(waveforms[0]);
+    act(() => samplers[0].options.onload?.());
+    result.current.getPreviewSampler();
+    expect(samplers[1].connect).toHaveBeenCalledWith(choruses[0]);
+});
+
+test('a failed reverb update switches reverb off while leaving other effects available', async () => {
+    renderHook(usePianoSampler);
+    reverbs[0].ready = Promise.reject(new Error('Impulse generation failed'));
+    await act(async () => {
+        useFxStore.getState().setSettings({
+            ...DEFAULT_FX_SETTINGS,
+            reverb: { enabled: true, room: 3, mix: 22 },
+        });
+        await Promise.resolve();
+    });
+    expect(useFxStore.getState().settings.reverb.enabled).toBe(false);
+    expect(toast.error).toHaveBeenCalledWith('Reverb could not start.', {
+        id: 'fx-reverb',
+    });
+});
+
+test('FX changes retune the active chain without rebuilding loaded samplers', async () => {
+    renderHook(usePianoSampler);
+    act(() =>
+        useFxStore.getState().setSettings({
+            reverb: { enabled: true, room: 3, mix: 28 },
+            delay: { enabled: true, time: 320, mix: 24 },
+            chorus: { enabled: true, depth: 60, mix: 20 },
+        }),
+    );
+    await act(async () => {
+        await Promise.resolve();
+    });
+    expect(choruses[0].depth).toBe(0.6);
+    expect(choruses[0].wet.rampTo).toHaveBeenLastCalledWith(0.2, 0.03);
+    expect(delays[0].delayTime.value).toBe(0.32);
+    expect(delays[0].wet.rampTo).toHaveBeenLastCalledWith(0.24, 0.03);
+    expect(reverbs[0].decay).toBe(3);
+    expect(reverbs[0].wet.rampTo).toHaveBeenLastCalledWith(0.28, 0.03);
+    expect(samplers).toHaveLength(1);
+    expect(choruses).toHaveLength(1);
+});
+
+test('waveform taps the post-FX output and its stable getter follows the active effect lifetime', () => {
     const { result, rerender, unmount } = renderHook(usePianoSampler, {
         wrapper: StrictMode,
     });
     const [discarded, current] = waveforms;
     expect(Tone.Waveform).toHaveBeenCalledWith(512);
-    expect(samplers[1].connect).toHaveBeenCalledExactlyOnceWith(current);
+    expect(samplers[1].connect).toHaveBeenCalledExactlyOnceWith(choruses[1]);
+    expect(reverbs[1].connect).toHaveBeenCalledExactlyOnceWith(current);
     expect(discarded.dispose).toHaveBeenCalledOnce();
     const getter = result.current.getWaveformSamples;
     expect(getter()).toEqual(new Float32Array([0, 0.5, -0.5]));
@@ -248,7 +373,7 @@ test('preview has isolated voices, shares decoded buffers, and is created only o
     expect(preview).not.toBe(samplers[0]);
     expect(samplers[1].options.urls).toBe(samplers[0].options.urls);
     expect(Tone.ToneAudioBuffer).toHaveBeenCalledTimes(30);
-    expect(samplers[1].connect).not.toHaveBeenCalled();
+    expect(samplers[1].connect).toHaveBeenCalledExactlyOnceWith(choruses[0]);
     rerender();
     expect(result.current.getPreviewSampler).toBe(getter);
     expect(getter()).toBe(preview);

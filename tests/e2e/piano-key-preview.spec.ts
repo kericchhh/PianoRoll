@@ -15,7 +15,7 @@ async function installAudioProbe(page: Page) {
         let nextBuffer = 0;
         const start = AudioBufferSourceNode.prototype.start;
         AudioBufferSourceNode.prototype.start = function (...args) {
-            if (this.buffer && this.buffer.duration > 1) {
+            if (this.buffer && this.buffer.duration > 1 && !this.loop) {
                 const voice = probe.starts.length;
                 voices.set(this, voice);
                 if (!buffers.has(this.buffer)) {

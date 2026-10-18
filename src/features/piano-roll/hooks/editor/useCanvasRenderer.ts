@@ -65,6 +65,19 @@ export function useCanvasRenderer(options: Options) {
     }, []);
 
     useEffect(() => {
+        if (!document.fonts) return;
+        let active = true;
+        void document.fonts.load('12px "IBM Plex Sans"').then(() => {
+            if (!active) return;
+            rulerViewRef.current = null;
+            requestRedraw();
+        });
+        return () => {
+            active = false;
+        };
+    }, [requestRedraw]);
+
+    useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const context = canvas.getContext('2d');

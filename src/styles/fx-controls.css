@@ -1,0 +1,185 @@
+.fx-section {
+    flex: none;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+.fx-section-header {
+    margin-bottom: 4px;
+}
+
+.fx-knob-caption {
+    display: flex;
+    max-width: 100%;
+    justify-content: center;
+    gap: 4px;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 14px;
+    white-space: nowrap;
+}
+
+.fx-output-meter {
+    flex: none;
+}
+
+.fx-knob {
+    position: relative;
+    display: grid;
+    width: 60px;
+    height: 60px;
+    place-items: center;
+    border-radius: 50%;
+    background: conic-gradient(
+        from 225deg,
+        var(--studio-peach) 0deg var(--knob-fill),
+        var(--border) var(--knob-fill) 270deg,
+        transparent 270deg
+    );
+    cursor: ns-resize;
+    touch-action: none;
+}
+
+.fx-knob::before {
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    background: repeating-conic-gradient(
+        from 225deg,
+        var(--studio-ash) 0deg 1.5deg,
+        transparent 1.5deg 22.5deg
+    );
+    content: '';
+    mask: radial-gradient(transparent 0 30px, #000 31px 33px, transparent 34px);
+    pointer-events: none;
+}
+
+.fx-knob-face {
+    position: relative;
+    display: block;
+    width: 49px;
+    height: 49px;
+    border: 2px solid var(--studio-control-rim);
+    border-radius: 50%;
+    background: radial-gradient(
+        circle at 32% 25%,
+        var(--studio-control-highlight),
+        var(--studio-control-shadow) 72%
+    );
+    box-shadow:
+        inset 0 0 0 3px var(--studio-control-inset),
+        0 2px 5px var(--studio-black);
+    transform: rotate(var(--knob-angle));
+    pointer-events: none;
+}
+
+.fx-knob-face::after {
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    width: 3px;
+    height: 13px;
+    background: var(--studio-bone);
+    box-shadow: 0 0 0 1px var(--studio-black);
+    content: '';
+    transform: translateX(-50%);
+}
+
+.fx-knob:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 8px;
+}
+
+.fx-toggle {
+    position: relative;
+    display: block;
+    width: 28px;
+    height: 40px;
+    flex: none;
+    padding: 0;
+    border: 0;
+    border-radius: 16px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.fx-toggle-socket {
+    position: absolute;
+    top: 9px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: conic-gradient(
+        from 30deg,
+        var(--studio-bone),
+        var(--studio-control-rim) 30%,
+        var(--studio-ash) 55%,
+        var(--studio-bone) 78%,
+        var(--studio-control-rim)
+    );
+    box-shadow: 0 1px 2px var(--studio-black);
+    pointer-events: none;
+}
+
+.fx-toggle-socket::before {
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    background: var(--studio-control-shadow);
+    box-shadow: inset 0 2px 3px var(--studio-black);
+    content: '';
+}
+
+.fx-toggle-lever {
+    position: absolute;
+    z-index: 1;
+    top: -8px;
+    left: 8px;
+    width: 6px;
+    height: 24px;
+    border: 1px solid var(--studio-control-rim);
+    border-radius: 4px 4px 2px 2px;
+    background: linear-gradient(
+        90deg,
+        var(--studio-control-rim),
+        var(--studio-bone) 42%,
+        var(--studio-ash) 75%
+    );
+    box-shadow: 1px 2px 2px var(--studio-black);
+    transform: rotate(180deg);
+    transform-origin: 50% 75%;
+    transition: transform 150ms ease-out;
+}
+
+.fx-toggle[data-enabled='true'] .fx-toggle-lever {
+    transform: rotate(0deg);
+}
+
+.fx-toggle-lamp {
+    position: absolute;
+    top: 5px;
+    right: 0;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--studio-control-rim);
+    box-shadow: inset 0 1px 2px var(--studio-black);
+    pointer-events: none;
+}
+
+.fx-toggle[data-enabled='true'] .fx-toggle-lamp {
+    background: var(--studio-peach);
+    box-shadow: 0 0 6px var(--studio-peach);
+}
+
+.fx-toggle:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fx-toggle-lever {
+        transition: none;
+    }
+}

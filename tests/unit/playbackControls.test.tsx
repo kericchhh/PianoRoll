@@ -51,6 +51,18 @@ test('playback announces distinct start, pause, and completion states through a 
     expect(status.textContent).toBe('Playback stopped');
 });
 
+test('Play and Pause share the circular transport control styling', () => {
+    const { rerender } = render(
+        <PlaybackControls onPlay={vi.fn()} isPlaying={false} />,
+    );
+    const play = screen.getByRole('button', { name: 'Play' });
+    expect(play.className).toContain('transport-button');
+    expect(play.getAttribute('data-playing')).toBe('false');
+    rerender(<PlaybackControls onPlay={vi.fn()} isPlaying />);
+    expect(screen.getByRole('button', { name: 'Pause' })).toBe(play);
+    expect(play.getAttribute('data-playing')).toBe('true');
+});
+
 test('Play remains keyboard operable before readiness and gives feedback without enabling audio', async () => {
     const user = userEvent.setup();
     const onPlay = vi.fn();

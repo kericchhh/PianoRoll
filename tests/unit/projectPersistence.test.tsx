@@ -8,6 +8,8 @@ import {
 } from '@/features/piano-roll/persistence/projectRepository';
 import type { ProjectRecord } from '@/features/piano-roll/persistence/projectRecord';
 import type { Note } from '@/features/piano-roll/types';
+import { DEFAULT_FX_SETTINGS } from '@/features/piano-roll/audio/fxSettings';
+import { useFxStore } from '@/features/piano-roll/store/useFxStore';
 
 vi.mock('@/features/piano-roll/persistence/projectRepository', () => ({
     saveProject: vi.fn(),
@@ -24,12 +26,13 @@ const before: Note = {
 };
 const saved: ProjectRecord = {
     id: 'local',
-    version: 2,
+    version: 3,
     bpm: 120,
     ppq: 480,
     beatsPerBar: 4,
     barCount: 16,
     savedAt: 1000,
+    fx: DEFAULT_FX_SETTINGS,
     notes: [
         {
             id: 'saved-id',
@@ -49,6 +52,7 @@ function deferred<T>() {
 }
 beforeEach(() => {
     vi.resetAllMocks();
+    useFxStore.getState().setSettings(DEFAULT_FX_SETTINGS);
     useNoteStore.setState(useNoteStore.getInitialState());
     useNoteStore.getState().addNote(before);
     useNoteStore.getState().addNote({ ...before, id: 'undone' });
@@ -59,6 +63,11 @@ beforeEach(() => {
 afterEach(cleanup);
 
 test('saving snapshots the composition without selection and leaves edit history untouched', async () => {
+    const fx = {
+        ...DEFAULT_FX_SETTINGS,
+        delay: { enabled: true, time: 250, mix: 18 },
+    };
+    useFxStore.getState().setSettings(fx);
     const original = useNoteStore.getState();
     const announce = vi.fn();
     const { result } = renderHook(() =>
@@ -68,6 +77,7 @@ test('saving snapshots the composition without selection and leaves edit history
     expect(saveProject).toHaveBeenCalledOnce();
     expect(saveProject).toHaveBeenCalledWith({
         ...saved,
+        fx,
         barCount: 8,
         savedAt: expect.any(Number),
         notes: [
@@ -87,6 +97,10 @@ test('saving snapshots the composition without selection and leaves edit history
 });
 
 test('loading validates before stopping playback and restores exact IDs/data with cleared history', async () => {
+    useFxStore.getState().setSettings({
+        ...DEFAULT_FX_SETTINGS,
+        delay: { enabled: true, time: 250, mix: 18 },
+    });
     const original = useNoteStore.getState();
     const onBeforeLoad = vi.fn(() =>
         expect(useNoteStore.getState()).toBe(original),
@@ -110,6 +124,7 @@ test('loading validates before stopping playback and restores exact IDs/data wit
     });
     expect(useNoteStore.getState().undoStack).toEqual([]);
     expect(useNoteStore.getState().redoStack).toEqual([]);
+    expect(useFxStore.getState().settings).toEqual(DEFAULT_FX_SETTINGS);
     expect(result.current.error).toBeNull();
     expect(announce).toHaveBeenCalled();
 });
@@ -122,7 +137,7 @@ test.each(['missing', 'invalid', 'sparse', 'read-error'])(
         if (failure === 'invalid') {
             vi.mocked(loadProject).mockResolvedValue({
                 ...saved,
-                version: 3,
+                version: 4,
             } as unknown as ProjectRecord);
         }
         if (failure === 'sparse') {
@@ -419,7 +434,7 @@ test('save captures BPM at invocation while later tempo edits remain local', asy
     });
     rerender({ bpm: 177 });
     expect(saveProject).toHaveBeenCalledWith(
-        expect.objectContaining({ version: 2, bpm: 93 }),
+        expect.objectContaining({ version: 3, bpm: 93 }),
     );
     await act(async () => {
         pending.resolve(undefined);

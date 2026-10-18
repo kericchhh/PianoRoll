@@ -585,7 +585,8 @@ test('workspace fills the viewport and keeps notes and keys aligned after resizi
     const sidebar = page.locator('.studio-sidebar');
     await expect(sidebar).toBeVisible();
     await expect(page.getByRole('button', { name: /planned/i })).toHaveCount(0);
-    await expect(sidebar).toHaveText('');
+    await expect(sidebar.getByRole('heading', { name: 'FX' })).toBeVisible();
+    await expect(sidebar.getByRole('slider')).toHaveCount(6);
     const canvasBounds = await canvas.boundingBox();
     const sidebarBounds = await sidebar.boundingBox();
     const playbackBounds = await page

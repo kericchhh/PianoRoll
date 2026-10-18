@@ -7,15 +7,21 @@ import {
 import { isValidMidiNote } from '@/features/piano-roll/midi/isValidMidiNote';
 import type { Note } from '@/features/piano-roll/types';
 import { isValidBpm } from '@/features/piano-roll/utils/time/isValidBpm';
+import {
+    DEFAULT_FX_SETTINGS,
+    parseFxSettings,
+    type FxSettings,
+} from '@/features/piano-roll/audio/fxSettings';
 
 export type ProjectRecord = {
     id: 'local';
-    version: 2;
+    version: 3;
     bpm: number;
     ppq: typeof PPQ;
     beatsPerBar: typeof BEATS_PER_BAR;
     barCount: number;
     savedAt: number;
+    fx: FxSettings;
     notes: Omit<Note, 'selected'>[];
 };
 
@@ -27,7 +33,7 @@ export function parseProjectRecord(value: unknown): ProjectRecord {
     if (
         !isRecord(value) ||
         value.id !== 'local' ||
-        (value.version !== 1 && value.version !== 2) ||
+        (value.version !== 1 && value.version !== 2 && value.version !== 3) ||
         value.ppq !== PPQ ||
         value.beatsPerBar !== BEATS_PER_BAR ||
         typeof value.barCount !== 'number' ||
@@ -46,6 +52,9 @@ export function parseProjectRecord(value: unknown): ProjectRecord {
     if (!isValidBpm(bpm)) {
         throw new Error('The saved project contains an invalid BPM.');
     }
+    const fx = parseFxSettings(
+        value.version === 3 ? value.fx : DEFAULT_FX_SETTINGS,
+    );
     const ids = new Set<string>();
     const notes = Array.from(value.notes, (entry: unknown) => {
         if (
@@ -78,12 +87,13 @@ export function parseProjectRecord(value: unknown): ProjectRecord {
 
     return {
         id: 'local',
-        version: 2,
+        version: 3,
         bpm,
         ppq: PPQ,
         beatsPerBar: BEATS_PER_BAR,
         barCount: value.barCount,
         savedAt: value.savedAt,
+        fx,
         notes,
     };
 }
@@ -92,15 +102,17 @@ export function createProjectRecord(
     notes: Record<string, Note>,
     barCount: number,
     bpm: number,
+    fx: FxSettings = DEFAULT_FX_SETTINGS,
 ): ProjectRecord {
     return parseProjectRecord({
         id: 'local',
-        version: 2,
+        version: 3,
         bpm,
         ppq: PPQ,
         beatsPerBar: BEATS_PER_BAR,
         barCount,
         savedAt: Date.now(),
+        fx,
         notes: Object.values(notes),
     });
 }

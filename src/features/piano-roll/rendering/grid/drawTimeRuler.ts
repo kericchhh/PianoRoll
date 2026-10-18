@@ -26,7 +26,7 @@ export function drawTimeRuler(
         endTick,
         (view.scrollOffsetX + width) / view.pixelsPerTick,
     );
-    context.font = '12px Barlow, sans-serif';
+    context.font = '12px "IBM Plex Sans", sans-serif';
     context.textBaseline = 'middle';
     context.fillStyle = PIANO_ROLL_COLORS.rulerText;
     context.strokeStyle = PIANO_ROLL_COLORS.timeGrid;

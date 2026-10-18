@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useNoteStore } from '@/features/piano-roll/store/useNoteStore';
+import { useFxStore } from '@/features/piano-roll/store/useFxStore';
 import {
     createProjectRecord,
     parseProjectRecord,
@@ -50,11 +51,14 @@ export function useProjectPersistence(options: Options) {
         setStatus('');
         try {
             const { notes } = useNoteStore.getState();
+            const fx = useFxStore.getState().settings;
             const barCount = optionsRef.current.barCount;
             const bpm = optionsRef.current.bpm;
             let message: string;
             if (action === 'save') {
-                await saveProject(createProjectRecord(notes, barCount, bpm));
+                await saveProject(
+                    createProjectRecord(notes, barCount, bpm, fx),
+                );
                 message = 'Project saved in this browser.';
             } else {
                 if (optionsRef.current.canLoad?.() === false)
@@ -72,6 +76,7 @@ export function useProjectPersistence(options: Options) {
                     useNoteStore.getState().notes !== notes ||
                     optionsRef.current.barCount !== barCount ||
                     optionsRef.current.bpm !== bpm ||
+                    useFxStore.getState().settings !== fx ||
                     optionsRef.current.canLoad?.() === false
                 ) {
                     throw new Error(
@@ -85,6 +90,7 @@ export function useProjectPersistence(options: Options) {
                         selected: false,
                     })),
                 );
+                useFxStore.getState().setSettings(project.fx);
                 optionsRef.current.onLoaded?.(project);
                 message = `Loaded ${project.notes.length} ${project.notes.length === 1 ? 'note' : 'notes'}. Selection and undo history cleared.`;
             }

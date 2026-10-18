@@ -151,7 +151,7 @@ test('explicit save survives reload and restores exact musical data, timeline, c
     expect(records).toHaveLength(1);
     expect(records[0]).toMatchObject({
         id: 'local',
-        version: 2,
+        version: 3,
         bpm: 120,
         ppq: 480,
         beatsPerBar: 4,
@@ -486,7 +486,7 @@ test('invalid saved BPM cannot stop active playback or replace the current compo
             savedAt: 1000,
             bpm: 29,
             notes: [],
-        });
+        } as unknown as Parameters<typeof projectsTable.put>[0]);
     });
     await expect(page.getByText('Piano ready', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Play', exact: true }).click();

@@ -1,0 +1,11 @@
+[data-slot='button'].fx-preset-button {
+    min-width: 0;
+    height: 32px;
+    padding: 0 2px;
+    font-size: 11px;
+}
+
+[data-slot='button'].fx-preset-button[aria-pressed='true'] {
+    border-color: var(--studio-peach);
+    color: var(--studio-peach);
+}

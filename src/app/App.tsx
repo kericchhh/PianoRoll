@@ -10,6 +10,7 @@ import { useState } from 'react';
 import type { CustomInstrument } from '@/features/piano-roll/audio/customInstrument';
 import { useCustomInstrument } from '@/features/piano-roll/hooks/playback/useCustomInstrument';
 import { CustomInstrumentPanel } from '@/features/piano-roll/components/playback/CustomInstrumentPanel';
+import { FxAudioContext } from '@/features/piano-roll/components/fx/FxAudioContext';
 
 export function App() {
     const [customInstrument, setCustomInstrument] =
@@ -54,29 +55,33 @@ export function App() {
 
     return (
         <main className="flex h-dvh min-h-0 flex-col p-2">
-            <PianoRollEditor
-                bpm={bpm}
-                onBpmChange={changeBpm}
-                onTogglePlayback={handlePlay}
-                onStopPlayback={stopPlayback}
-                sampleControls={<CustomInstrumentPanel {...sampleControls} />}
-                onPreviewPitch={previewPitch}
-                playbackControls={
-                    <PlaybackControls
-                        isPlaying={isPlaying}
-                        playbackState={playbackState}
-                        onPlay={handlePlay}
-                    />
-                }
-                getPlaybackTick={getPlaybackTick}
-                playbackState={playbackState}
-                playbackWaveform={
-                    <PlaybackWaveform
-                        isPlaying={isPlaying}
-                        getSamples={getWaveformSamples}
-                    />
-                }
-            />
+            <FxAudioContext.Provider value={getWaveformSamples}>
+                <PianoRollEditor
+                    bpm={bpm}
+                    onBpmChange={changeBpm}
+                    onTogglePlayback={handlePlay}
+                    onStopPlayback={stopPlayback}
+                    sampleControls={
+                        <CustomInstrumentPanel {...sampleControls} />
+                    }
+                    onPreviewPitch={previewPitch}
+                    playbackControls={
+                        <PlaybackControls
+                            isPlaying={isPlaying}
+                            playbackState={playbackState}
+                            onPlay={handlePlay}
+                        />
+                    }
+                    getPlaybackTick={getPlaybackTick}
+                    playbackState={playbackState}
+                    playbackWaveform={
+                        <PlaybackWaveform
+                            isPlaying={isPlaying}
+                            getSamples={getWaveformSamples}
+                        />
+                    }
+                />
+            </FxAudioContext.Provider>
             <Toaster position="bottom-right" closeButton />
         </main>
     );

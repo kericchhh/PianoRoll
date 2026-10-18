@@ -6,9 +6,16 @@ import { usePrefersReducedMotion } from '@/shared/hooks/usePrefersReducedMotion'
 
 type Props = Omit<ComponentProps<typeof SheetPrimitive.Content>, 'asChild'> & {
     open: boolean;
+    side?: 'left' | 'right';
 };
 
-export function SheetContent({ open, className, children, ...props }: Props) {
+export function SheetContent({
+    open,
+    side = 'left',
+    className,
+    children,
+    ...props
+}: Props) {
     const reducedMotion = usePrefersReducedMotion();
     const transition = {
         duration: reducedMotion ? 0 : 0.2,
@@ -33,12 +40,27 @@ export function SheetContent({ open, className, children, ...props }: Props) {
                         <motion.div
                             data-slot="sheet-content"
                             className={cn(
-                                'fixed inset-y-0 left-0 z-50 flex w-80 max-w-full flex-col overflow-hidden border-r-2 border-border bg-secondary text-foreground',
+                                'fixed inset-y-0 z-50 flex w-80 max-w-full flex-col overflow-hidden border-border bg-secondary text-foreground',
+                                side === 'right'
+                                    ? 'right-0 border-l-2'
+                                    : 'left-0 border-r-2',
                                 className,
                             )}
-                            initial={{ x: reducedMotion ? 0 : '-100%' }}
+                            initial={{
+                                x: reducedMotion
+                                    ? 0
+                                    : side === 'right'
+                                      ? '100%'
+                                      : '-100%',
+                            }}
                             animate={{ x: 0 }}
-                            exit={{ x: reducedMotion ? 0 : '-100%' }}
+                            exit={{
+                                x: reducedMotion
+                                    ? 0
+                                    : side === 'right'
+                                      ? '100%'
+                                      : '-100%',
+                            }}
                             transition={transition}
                         >
                             {children}
